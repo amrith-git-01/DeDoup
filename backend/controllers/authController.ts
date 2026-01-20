@@ -35,7 +35,7 @@ export const loginController = asyncHandler(async (req: Request, res: Response) 
 })
 
 export const getMeController = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).req.user?.id;
+    const userId = req.user?.userId;
     if (!userId) {
         return res.status(401).json({
             success: false,
