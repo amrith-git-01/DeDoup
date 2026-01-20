@@ -16,10 +16,17 @@
     "action": {
         "default_title": "DeDoup"
     },
+    "side_panel": {
+        "default_path": "index.html"
+    },
+    "background": {
+        "service_worker": "src/background/serviceWorker.ts",
+        "type": "module"
+    },
     "content_scripts": [
         {
             "matches": ["http://localhost:5173/*"],
-            "js": ["content/authListener.ts"],
+            "js": ["src/content/authListener.ts"],
             "run_at": "document_end"
         }
     ]
