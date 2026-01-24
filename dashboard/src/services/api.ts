@@ -1,4 +1,6 @@
 import axios from 'axios'
+import { store } from '../store/store'
+import { clearAuth } from '../store/slices/authSlice'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
 
@@ -25,9 +27,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response.status === 401) {
+        if (error.response.status === 401 && !error.config?.url?.includes('/auth/login') && !error.config?.url?.includes('/auth/signup')) {
             localStorage.removeItem('token');
-            window.location.href = '/login';
+            store.dispatch(clearAuth());
         }
         return Promise.reject(error);
     }
