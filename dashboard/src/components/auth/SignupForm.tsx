@@ -6,15 +6,28 @@ interface SignupFormProps {
   email: string
   password: string
   username: string
+  passwordConfirm: string
   emailError?: string
   passwordError?: string
   usernameError?: string
+  passwordConfirmError?: string
   generalError?: string | null
   isLoading: boolean
+  isDirty: boolean
+  showPassword: boolean
+  showPasswordConfirm: boolean
+  onReset: () => void
   onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   onPasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   onUsernameChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  onSubmit: (e: React.FormEvent) => void
+  onPasswordConfirmChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onClearEmail: () => void
+  onClearUsername: () => void
+  onClearPassword: () => void
+  onClearPasswordConfirm: () => void
+  onTogglePassword: () => void
+  onTogglePasswordConfirm: () => void
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
 }
 
 export function SignupForm({
@@ -23,22 +36,28 @@ export function SignupForm({
   username,
   emailError,
   passwordError,
+  passwordConfirm,
   usernameError,
-  generalError,
+  passwordConfirmError,
   isLoading,
+  isDirty,
+  showPassword,
+  showPasswordConfirm,
+  onReset,
   onEmailChange,
   onPasswordChange,
   onUsernameChange,
+  onPasswordConfirmChange,
+  onClearEmail,
+  onClearUsername,
+  onClearPassword,
+  onClearPasswordConfirm,
+  onTogglePassword,
+  onTogglePasswordConfirm,
   onSubmit,
 }: SignupFormProps) {
   return (
-    <form className="space-y-4" onSubmit={onSubmit}>
-      {generalError && (
-        <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">
-          {generalError}
-        </div>
-      )}
-
+    <form noValidate className="space-y-4" onSubmit={onSubmit}>
       <TextField
         label="Username"
         name="username"
@@ -49,10 +68,11 @@ export function SignupForm({
         value={username}
         onChange={onUsernameChange}
         error={usernameError}
+        onClear={onClearUsername}
       />
 
       <TextField
-        label="Email"
+        label="Email address"
         name="email"
         type="email"
         autoComplete="email"
@@ -61,28 +81,58 @@ export function SignupForm({
         value={email}
         onChange={onEmailChange}
         error={emailError}
+        onClear={onClearEmail}
       />
 
-      <TextField
-        label="Password"
-        name="password"
-        type="password"
-        autoComplete="new-password"
-        required
-        placeholder="Minimum 8 characters"
-        value={password}
-        onChange={onPasswordChange}
-        error={passwordError}
-      />
+<TextField
+  label="Password"
+  name="password"
+  type={showPassword ? 'text' : 'password'}
+  autoComplete="new-password"
+  required
+  placeholder="Minimum 8 characters"
+  value={password}
+  onChange={onPasswordChange}
+  error={passwordError}
+  showPasswordToggle
+  isPasswordVisible={showPassword}
+  onTogglePassword={onTogglePassword}
+/>
 
-      <Button
-        type="submit"
-        variant="primary"
-        className="w-full"
-        isLoading={isLoading}
-      >
-        Create account
-      </Button>
+<TextField
+  label="Confirm Password"
+  name="passwordConfirm"
+  type={showPasswordConfirm ? 'text' : 'password'}
+  autoComplete="new-password"
+  required
+  placeholder="Re-enter your password"
+  value={passwordConfirm}
+  onChange={onPasswordConfirmChange}
+  error={passwordConfirmError}
+  showPasswordToggle
+  isPasswordVisible={showPasswordConfirm}
+  onTogglePassword={onTogglePasswordConfirm}
+/>
+
+<div className="flex gap-3 mt-6">
+  <Button
+  type="button"
+  variant="secondary"
+  className="flex-1 !bg-gray-600 !text-white !border-gray-600 disabled:!bg-gray-200 disabled:!text-gray-400 disabled:!border-gray-200"
+  disabled={!isDirty}
+  onClick={onReset}
+>
+  Reset
+</Button>
+  <Button
+    type="submit"
+    variant="primary"
+    className="flex-1"
+    isLoading={isLoading}
+  >
+    {isLoading ? 'Signing up...' : 'Sign up'}
+  </Button>
+</div>
     </form>
   )
 }
