@@ -9,6 +9,10 @@ export interface IDownload extends Document {
     hash: string;
     size?: number;
     status: 'new' | 'duplicate';
+    fileExtension?: string;
+    mimeType?: string;
+    sourceDomain?: string;
+    fileCategory?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -40,6 +44,22 @@ const downloadSchema = new Schema<IDownload>({
     },
     size: {
         type: Number,
+    },
+    fileExtension: {
+        type: String,
+        lowercase: true,
+    },
+    mimeType: {
+        type: String,
+    },
+    sourceDomain: {
+        type: String,
+        lowercase: true,
+    },
+    fileCategory: {
+        type: String,
+        enum: ['document', 'image', 'video', 'audio', 'archive', 'executable', 'other'],
+        default: 'other',
     },
     status: {
         type: String,

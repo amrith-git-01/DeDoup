@@ -8,7 +8,6 @@ import {
     logDownload,
     getUserStats,
     getDownloadHistory,
-    getRecentlyBlocked,
     getDuplicateDownloads
 } from '../services/downloadService.js'
 
@@ -17,7 +16,7 @@ import {
 // ============================================
 
 export const trackDownloadController = asyncHandler(async (req: Request, res: Response) => {
-    const { filename, url, hash, size } = req.body
+    const { filename, url, hash, size, fileExtension, mimeType, sourceDomain, fileCategory } = req.body
     const userId = req.user?.userId
 
     if (!userId) {
@@ -40,6 +39,10 @@ export const trackDownloadController = asyncHandler(async (req: Request, res: Re
         url,
         hash,
         size,
+        fileExtension,
+        mimeType,
+        sourceDomain,
+        fileCategory,
         status: isDuplicate ? 'duplicate' : 'new'
     })
 
@@ -130,10 +133,10 @@ export const getDuplicatesController = asyncHandler(async (req: Request, res: Re
         throw new AppError('Limit must be between 1 and 100', 400)
     }
 
-    const duplicates = await getDuplicateDownloads(userId, limit)
+    const duplicateDownloads = await getDuplicateDownloads(userId, limit)
 
     res.json({
         success: true,
-        data: duplicates
+        data: duplicateDownloads
     })
 })

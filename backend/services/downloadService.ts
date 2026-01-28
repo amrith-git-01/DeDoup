@@ -11,6 +11,10 @@ export interface DownloadPayload {
     url: string
     hash: string
     size?: number
+    fileExtension?: string;
+    mimeType?: string;
+    sourceDomain?: string;
+    fileCategory?: string;
     status: 'new' | 'duplicate'
 }
 
@@ -21,6 +25,8 @@ export interface DownloadStats {
     totalSize: number
     uniqueFilesSize: number
     duplicateFilesSize: number
+    fileCategories: Record<string, number>
+    fileExtensions: Record<string, number>
 }
 
 export interface DownloadHistoryItem {
@@ -29,6 +35,10 @@ export interface DownloadHistoryItem {
     url: string
     hash: string
     size?: number
+    fileExtension?: string;
+    mimeType?: string;
+    sourceDomain?: string;
+    fileCategory?: string;
     status: 'new' | 'duplicate'
     createdAt: Date
 }
@@ -56,6 +66,10 @@ export async function logDownload(userId: string, payload: DownloadPayload) {
         url: payload.url,
         hash: payload.hash,
         size: payload.size,
+        fileExtension: payload.fileExtension,
+        mimeType: payload.mimeType,
+        sourceDomain: payload.sourceDomain,
+        fileCategory: payload.fileCategory,
         status: payload.status
     })
 
@@ -89,14 +103,29 @@ export async function getUserStats(userId: string): Promise<DownloadStats> {
             }
         }
     })
-
+    // Calculate file category breakdown
+    const fileCategories: Record<string, number> = {}
+    allDownloads.forEach(download => {
+        const category = download.fileCategory || 'other'
+        fileCategories[category] = (fileCategories[category] || 0) + 1
+    })
+    // Calculate ALL file extensions (not just top)
+    const fileExtensions: Record<string, number> = {}
+    allDownloads.forEach(download => {
+        if (download.fileExtension) {
+            const ext = download.fileExtension
+            fileExtensions[ext] = (fileExtensions[ext] || 0) + 1
+        }
+    })
     return {
         totalDownloads,
         uniqueDownloads,
         duplicateDownloads,
         totalSize,
         uniqueFilesSize,
-        duplicateFilesSize
+        duplicateFilesSize,
+        fileCategories,
+        fileExtensions
     }
 }
 
@@ -122,6 +151,7 @@ export async function getDownloadHistory(
         hash: doc.hash,
         size: doc.size,
         status: doc.status,
+        fileCategory: doc.fileCategory,
         createdAt: doc.createdAt
     }))
 }
@@ -149,12 +179,13 @@ export async function getRecentlyBlocked(
         hash: doc.hash,
         size: doc.size,
         status: doc.status,
+        fileCategory: doc.fileCategory,
         createdAt: doc.createdAt
     }))
 }
 
 // ============================================
-// Get duplicate downloads
+// Get Duplicate downloads
 // ============================================
 
 export async function getDuplicateDownloads(
@@ -168,7 +199,6 @@ export async function getDuplicateDownloads(
         .sort({ createdAt: -1 })
         .limit(limit)
         .lean()
-
     return downloads.map(doc => ({
         id: doc._id.toString(),
         filename: doc.filename,
@@ -176,6 +206,7 @@ export async function getDuplicateDownloads(
         hash: doc.hash,
         size: doc.size,
         status: doc.status,
+        fileCategory: doc.fileCategory,
         createdAt: doc.createdAt
     }))
 }
