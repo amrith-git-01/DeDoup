@@ -5,7 +5,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import morgan from 'morgan';
 import authRoutes from './routes/authRoutes.js';
-import downRoutes from './routes/downRoutes.js';
+import downRoutes from './routes/downloadRoutes.js';
 
 dotenv.config();
 
