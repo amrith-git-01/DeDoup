@@ -484,7 +484,39 @@ export async function getAdvancedStats(userId: string): Promise<AdvancedStats> {
         const averageDuplicateCount = Object.keys(fileDuplicateCounts).length > 0
             ? Object.values(fileDuplicateCounts).reduce((sum, f) => sum + f.count, 0) / Object.keys(fileDuplicateCounts).length
             : 0
+
+        const dailyActivityMap = new Map<string, { total: number, unique: number, duplicate: number }>();
+
+        for (let i = 0; i < 35; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            dailyActivityMap.set(dateStr, { total: 0, unique: 0, duplicate: 0 });
+        }
+
+        allEvents.forEach(e => {
+            const d = new Date(e.downloadedAt);
+            const dateStr = d.toISOString().split('T')[0];
+            const dayStats = dailyActivityMap.get(dateStr);
+            if (dayStats) {
+                dayStats.total++;
+                if (e.status === 'new') {
+                    dayStats.unique++;
+                } else {
+                    dayStats.duplicate++;
+                }
+            }
+        })
+
+        const dailyActivity = Array.from(dailyActivityMap.entries())
+            .map(([date, stats]) => ({
+                date,
+                ...stats
+            }))
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
         return {
+            dailyActivity,
             timeStats: {
                 downloadsToday,
                 downloadsThisWeek,

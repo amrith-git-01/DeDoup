@@ -11,6 +11,13 @@ export interface DownloadPayload {
     status: 'new' | 'duplicate'
 }
 
+export interface DailyActivity {
+    date: string;
+    total: number;
+    unique: number;
+    duplicate: number;
+}
+
 export interface DownloadStats {
     totalDownloads: number;
     uniqueDownloads: number;
@@ -90,4 +97,5 @@ export interface AdvancedStats {
     sourceStats: SourceStats
     fileTypeStats: FileTypeStats
     duplicateStats: DuplicateStats
+    dailyActivity: DailyActivity[]
 }
