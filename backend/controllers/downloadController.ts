@@ -8,15 +8,31 @@ import {
     logDownload,
     getUserStats,
     getDownloadHistory,
-    getDuplicateDownloads
+    getDuplicateDownloads,
+    getAdvancedStats
 } from '../services/downloadService.js'
+
+// ============================================
+// Get Advanced Statistics
+// ============================================
+export const getAdvancedStatsController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.userId
+    if (!userId) {
+        throw new AppError('Unauthorized', 401)
+    }
+    const stats = await getAdvancedStats(userId)
+    res.json({
+        success: true,
+        data: stats
+    })
+})
 
 // ============================================
 // Track Download (with duplicate detection)
 // ============================================
 
 export const trackDownloadController = asyncHandler(async (req: Request, res: Response) => {
-    const { filename, url, hash, size, fileExtension, mimeType, sourceDomain, fileCategory } = req.body
+    const { filename, url, hash, size, fileExtension, mimeType, sourceDomain, fileCategory, duration } = req.body
     const userId = req.user?.userId
 
     if (!userId) {
@@ -43,6 +59,7 @@ export const trackDownloadController = asyncHandler(async (req: Request, res: Re
         mimeType,
         sourceDomain,
         fileCategory,
+        duration,
         status: isDuplicate ? 'duplicate' : 'new'
     })
 

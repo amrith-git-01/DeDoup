@@ -6,7 +6,8 @@ import {
     trackDownloadController,
     getStatsController,
     getHistoryController,
-    getDuplicatesController
+    getDuplicatesController,
+    getAdvancedStatsController
 } from '../controllers/downloadController.js'
 
 const router = Router()
@@ -25,5 +26,7 @@ router.get('/history', getHistoryController)
 
 // Get duplicate downloads
 router.get('/duplicates', getDuplicatesController)
+
+router.get('/advanced-stats', getAdvancedStatsController)
 
 export default router
