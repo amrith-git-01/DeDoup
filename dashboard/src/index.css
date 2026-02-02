@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  
+  /* FIX: Use --font-*, not --font-family-* */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+  --font-mono: 'Roboto Mono', 'Courier New', monospace;
+
+  /* Colors defined correctly */
   --color-primary-50: #EFF6FF;
   --color-primary-100: #DBEAFE;
   --color-primary-200: #BFDBFE;
@@ -13,7 +17,7 @@
   --color-primary-700: #1D4ED8;
   --color-primary-800: #1E40AF;
   --color-primary-900: #1E3A8A;
-  
+
   --color-accent-50: #F5F3FF;
   --color-accent-100: #EDE9FE;
   --color-accent-200: #DDD6FE;
@@ -30,37 +34,43 @@
   * {
     @apply border-gray-200;
   }
-  
+
   body {
     @apply bg-gray-50 text-gray-900 font-sans antialiased;
   }
-  
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold text-gray-900;
-  }
-  
+
+  /* Use Outfit for large headings */
   h1 {
-    @apply text-3xl tracking-tight;
+    @apply text-3xl tracking-tight font-display font-bold;
   }
-  
+
   h2 {
-    @apply text-2xl tracking-tight;
+    @apply text-2xl tracking-tight font-display font-semibold;
   }
-  
+
+  /* Inter for smaller headings */
   h3 {
-    @apply text-xl;
+    @apply text-xl font-sans font-semibold text-gray-900;
   }
-  
+
+  h4, h5, h6 {
+    @apply font-sans font-semibold text-gray-900;
+  }
+
   p {
     @apply text-gray-600;
   }
-  
+
   a {
     @apply text-primary-600 hover:text-primary-700 transition-colors;
   }
-  
+
   button {
     @apply transition-all duration-200;
+  }
+
+  code, pre {
+    @apply font-mono;
   }
 }
 
@@ -68,61 +78,34 @@
   .btn-primary {
     @apply bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
   }
-  
+
   .btn-secondary {
     @apply bg-white text-gray-700 px-4 py-2 rounded-lg font-medium border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
   }
-  
+
   .input {
     @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all;
   }
-  
+
   .card {
     @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
   }
 }
 
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fade-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 @keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
-.animate-fade-in-up {
-  animation: fade-in-up 200ms ease-out;
-}
-
-.animate-fade-in-right {
-  animation: fade-in-right 200ms ease-out;
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 .animate-slide-in-right {
-  animation: slide-in-right 200ms ease-out;
+  animation: slide-in-right 360ms ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 360ms ease-out;
 }

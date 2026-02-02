@@ -99,7 +99,7 @@ export default function AuthPage() {
     return Object.keys(errors).length === 0
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setGeneralError(null)
     setFieldErrors({})

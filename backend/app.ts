@@ -5,6 +5,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import morgan from 'morgan';
 import authRoutes from './routes/authRoutes.js';
+import downRoutes from './routes/downloadRoutes.js';
 
 dotenv.config();
 
@@ -34,7 +35,7 @@ app.get('/health', (req, res) => {
 })
 
 app.use('/api/auth', authRoutes);
-
+app.use('/api/downloads', downRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 

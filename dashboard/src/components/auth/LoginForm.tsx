@@ -1,3 +1,4 @@
+// dashboard/src/components/auth/LoginForm.tsx
 import {TextField} from '../ui/TextField'
 import {Button} from '../ui/Button'
 
@@ -8,8 +9,14 @@ interface LoginFormProps{
     passwordError?: string
     generalError?: string | null
     isLoading: boolean
+    isDirty: boolean
+    showPassword: boolean
+    onReset: () => void
     onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void
     onPasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+    onClearEmail: () => void
+    onClearPassword: () => void
+    onTogglePassword: () => void
     onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
 }
 
@@ -18,22 +25,21 @@ export function LoginForm({
     password,
     emailError,
     passwordError,
-    generalError,
     isLoading,
+    isDirty,
+    showPassword,
+    onReset,
     onEmailChange,
     onPasswordChange,
+    onClearEmail,
+    onClearPassword,
+    onTogglePassword,
     onSubmit,
   }: LoginFormProps) {
     return (
-      <form className="space-y-4" onSubmit={onSubmit}>
-        {generalError && (
-          <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">
-            {generalError}
-          </div>
-        )}
-  
+      <form noValidate className="space-y-4" onSubmit={onSubmit}>
         <TextField
-          label="Email"
+          label="Email address"
           name="email"
           type="email"
           autoComplete="email"
@@ -42,28 +48,43 @@ export function LoginForm({
           value={email}
           onChange={onEmailChange}
           error={emailError}
+          onClear={onClearEmail}
         />
   
         <TextField
           label="Password"
           name="password"
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           autoComplete="current-password"
           required
-          placeholder="Your password"
+          placeholder="Enter your password"
           value={password}
           onChange={onPasswordChange}
           error={passwordError}
+          showPasswordToggle
+          isPasswordVisible={showPassword}
+          onTogglePassword={onTogglePassword}
         />
   
-        <Button
-          type="submit"
-          variant="primary"
-          className="w-full"
-          isLoading={isLoading}
-        >
-          Sign in
-        </Button>
+  <div className="flex gap-3 mt-6">
+  <Button
+  type="button"
+  variant="secondary"
+  className="flex-1 !bg-gray-600 !text-white !border-gray-600 disabled:!bg-gray-200 disabled:!text-gray-400 disabled:!border-gray-200"
+  disabled={!isDirty}
+  onClick={onReset}
+>
+  Reset
+</Button>
+  <Button
+    type="submit"
+    variant="primary"
+    className="flex-1"
+    isLoading={isLoading}
+  >
+    {isLoading ? 'Logging in...' : 'Log in'}
+  </Button>
+</div>
       </form>
     )
   }
