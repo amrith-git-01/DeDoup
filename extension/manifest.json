@@ -2,33 +2,48 @@
     "manifest_version": 3,
     "name": "DeDoup",
     "version": "1.0.0",
-    "description": "DeDoup is a Chrome extension thats helps you manage your downloads and prevent duplicates.",
+    "description": "DeDoup helps you manage downloads and prevent duplicates.",
+    
     "permissions": [
-        "storage",
-        "tabs",
-        "downloads",
-        "downloads.shelf",
-        "sidePanel"
+      "storage",
+      "tabs",
+      "downloads",
+      "sidePanel",
+      "notifications"
     ],
-    "host_permissions":[
-        "http://localhost:5173/*"
+  
+    "host_permissions": [
+      "http://localhost:5173/*",
+      "http://localhost:3000/*",
+      "<all_urls>",
+      "file:///*"
     ],
+  
     "action": {
-        "default_title": "DeDoup"
+      "default_title": "DeDoup"
     },
+  
     "side_panel": {
-        "default_path": "index.html"
+      "default_path": "index.html"
     },
+  
     "background": {
-        "service_worker": "src/background/serviceWorker.ts",
-        "type": "module"
+      "service_worker": "src/background/serviceWorker.ts",
+      "type": "module"
     },
+  
     "content_scripts": [
-        {
-            "matches": ["http://localhost:5173/*"],
-            "js": ["src/content/authListener.ts"],
-            "run_at": "document_end"
-        }
-    ]
-
+      {
+        "matches": ["http://localhost:5173/*"],
+        "js": ["src/content/authListener.ts"],
+        "run_at": "document_end"
+      }
+    ],
+  
+    "externally_connectable": {
+      "matches": [
+        "http://localhost:5173/*",
+        "http://localhost:3000/*"
+      ]
+    }
 }
