@@ -47,10 +47,13 @@ export interface DownloadHistoryItem {
 
 export interface TimeBasedStats {
     downloadsToday: number
+    downloadsYesterday: number
     downloadsThisWeek: number
+    downloadsPreviousWeek: number
     downloadsThisMonth: number
+    downloadsPreviousMonth: number
     averagePerDay: number
-    mostActiveHour: number
+    mostActiveHour: number | null
     mostActiveHourDate?: Date | null
     mostActiveDay: string
     firstDownloadDate: Date | null
