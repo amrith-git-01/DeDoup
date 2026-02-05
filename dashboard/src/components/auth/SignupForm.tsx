@@ -117,8 +117,8 @@ export function SignupForm({
 <div className="flex gap-3 mt-6">
   <Button
   type="button"
-  variant="secondary"
-  className="flex-1 !bg-gray-600 !text-white !border-gray-600 disabled:!bg-gray-200 disabled:!text-gray-400 disabled:!border-gray-200"
+  variant="ghost"
+  className="flex-1"
   disabled={!isDirty}
   onClick={onReset}
 >

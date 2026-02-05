@@ -2,6 +2,8 @@ import axios from 'axios'
 import { store } from '../store/store'
 import { clearAuth } from '../store/slices/authSlice'
 
+import type { AdvancedStats, BasicStats } from '../types/stats'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
 
 export const api = axios.create({
@@ -27,7 +29,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response.status === 401 && !error.config?.url?.includes('/auth/login') && !error.config?.url?.includes('/auth/signup')) {
+        if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login') && !error.config?.url?.includes('/auth/signup')) {
             localStorage.removeItem('token');
             store.dispatch(clearAuth());
         }
@@ -46,6 +48,17 @@ export const authAPI = {
     },
     getMe: async () => {
         const response = await api.get('/auth/me');
+        return response.data;
+    }
+}
+
+export const statsAPI = {
+    getBasicStats: async () => {
+        const response = await api.get<{ success: boolean; data: BasicStats }>('/downloads/stats');
+        return response.data;
+    },
+    getAdvancedStats: async () => {
+        const response = await api.get<{ success: boolean; data: AdvancedStats }>('/downloads/advanced-stats');
         return response.data;
     }
 }

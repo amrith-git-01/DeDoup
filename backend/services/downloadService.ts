@@ -121,18 +121,23 @@ export async function getUserStats(userId: string): Promise<DownloadStats> {
             ? Math.round((totalDuration / eventsWithDuration.length) * 100) / 100
             : 0
 
-        // Calculate file category breakdown
+        // Map file IDs to their metadata for quick lookup
+        const fileMetadataMap = new Map(allFiles.map(f => [f._id.toString(), { category: f.fileCategory, extension: f.fileExtension }]));
+
+        // Calculate file category breakdown (including duplicates)
         const fileCategories: Record<string, number> = {}
-        allFiles.forEach(file => {
-            const category = file.fileCategory || 'other'
+        allEvents.forEach(event => {
+            const metadata = fileMetadataMap.get(event.fileId.toString());
+            const category = metadata?.category || 'other'
             fileCategories[category] = (fileCategories[category] || 0) + 1
         })
 
-        // Calculate ALL file extensions
+        // Calculate file extension breakdown (including duplicates)
         const fileExtensions: Record<string, number> = {}
-        allFiles.forEach(file => {
-            if (file.fileExtension) {
-                const ext = file.fileExtension
+        allEvents.forEach(event => {
+            const metadata = fileMetadataMap.get(event.fileId.toString());
+            if (metadata?.extension) {
+                const ext = metadata.extension
                 fileExtensions[ext] = (fileExtensions[ext] || 0) + 1
             }
         })
@@ -282,12 +287,46 @@ export async function getAdvancedStats(userId: string): Promise<AdvancedStats> {
 
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+
+        // Calculate start of current week (Monday at 00:00:00)
+        const startOfWeek = new Date(now);
+        startOfWeek.setHours(0, 0, 0, 0);
+        const dayOfWeek = startOfWeek.getDay();
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        startOfWeek.setDate(startOfWeek.getDate() - diff);
+
+        // Start of current month (1st day at 00:00:00)
+        const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
         const downloadsToday = allEvents.filter(e => new Date(e.downloadedAt) >= today).length;
-        const downloadsThisWeek = allEvents.filter(e => new Date(e.downloadedAt) >= weekAgo).length;
-        const downloadsThisMonth = allEvents.filter(e => new Date(e.downloadedAt) >= monthAgo).length;
+        const downloadsThisWeek = allEvents.filter(e => new Date(e.downloadedAt) >= startOfWeek).length;
+        const downloadsThisMonth = allEvents.filter(e => new Date(e.downloadedAt) >= startOfThisMonth).length;
+
+        // Yesterday's downloads
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+        const yesterdayEnd = new Date(yesterdayStart.getTime() + 24 * 60 * 60 * 1000);
+        const downloadsYesterday = allEvents.filter(e => new Date(e.downloadedAt) >= yesterdayStart && new Date(e.downloadedAt) < yesterdayEnd).length;
+
+        // Previous week's downloads
+        const previousWeekStart = new Date(startOfWeek);
+        previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+        const previousWeekEnd = new Date(previousWeekStart);
+        previousWeekEnd.setDate(previousWeekEnd.getDate() + 6);
+        previousWeekEnd.setHours(23, 59, 59, 999);
+        const downloadsPreviousWeek = allEvents.filter(e => {
+            const eventDate = new Date(e.downloadedAt);
+            return eventDate >= previousWeekStart && eventDate <= previousWeekEnd;
+        }).length;
+
+        // Previous month's downloads
+        const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        const downloadsPreviousMonth = allEvents.filter(e => {
+            const eventDate = new Date(e.downloadedAt);
+            return eventDate >= previousMonthStart && eventDate <= previousMonthEnd;
+        }).length;
 
         const firstDownloadDate = allEvents.length > 0 ? allEvents[0].downloadedAt : null;
         const firstDownloadEvent = allEvents.length > 0 ? allEvents[0] : null;
@@ -321,28 +360,72 @@ export async function getAdvancedStats(userId: string): Promise<AdvancedStats> {
             }
         }
 
-        const sortedHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]);
-        const mostActiveEntry = sortedHours[0];
+        const thisWeekEvents = allEvents.filter(e => new Date(e.downloadedAt) >= startOfWeek);
 
-        let mostActiveHour = 0;
+        const weeklyHourCounts: Record<number, { count: number; latestDate: Date }> = {};
+        thisWeekEvents.forEach(e => {
+            const date = new Date(e.downloadedAt);
+            const hour = date.getHours();
+            if (!weeklyHourCounts[hour]) {
+                weeklyHourCounts[hour] = { count: 0, latestDate: date };
+            }
+            weeklyHourCounts[hour].count++;
+            if (date > weeklyHourCounts[hour].latestDate) {
+                weeklyHourCounts[hour].latestDate = date;
+            }
+        });
+
+        let mostActiveHour: number | null = null;
         let mostActiveHourDate: Date | null = null;
 
-        if (mostActiveEntry) {
-            const [key] = mostActiveEntry;
-            // Key format: "Fri Jan 30 2026-14"
-            const lastDashIndex = key.lastIndexOf('-');
-            const dateStr = key.substring(0, lastDashIndex);
-            const hourStr = key.substring(lastDashIndex + 1);
-            mostActiveHour = parseInt(hourStr);
-            mostActiveHourDate = new Date(dateStr);
+        if (Object.keys(weeklyHourCounts).length > 0) {
+            const sortedHours = Object.entries(weeklyHourCounts).sort((a, b) => {
+                const [, dataA] = a;
+                const [, dataB] = b;
+
+                // Sort by count descending, then by latest date descending (tie-breaker)
+                if (dataB.count !== dataA.count) {
+                    return dataB.count - dataA.count;
+                }
+                return dataB.latestDate.getTime() - dataA.latestDate.getTime();
+            });
+
+            const [hour, data] = sortedHours[0];
+            mostActiveHour = parseInt(hour);
+            mostActiveHourDate = data.latestDate;
         }
 
-        const dayCounts: Record<string, number> = {}
-        allEvents.forEach(e => {
-            const day = new Date(e.downloadedAt).toLocaleDateString()
-            dayCounts[day] = (dayCounts[day] || 0) + 1
-        })
-        const mostActiveDay = Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+        // Peak Day (this week)
+        const dayOfWeekCounts: Record<string, { count: number; latestDate: Date }> = {};
+        thisWeekEvents.forEach(e => {
+            const date = new Date(e.downloadedAt);
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+
+            if (!dayOfWeekCounts[dayName]) {
+                dayOfWeekCounts[dayName] = { count: 0, latestDate: date };
+            }
+            dayOfWeekCounts[dayName].count++;
+            if (date > dayOfWeekCounts[dayName].latestDate) {
+                dayOfWeekCounts[dayName].latestDate = date;
+            }
+        });
+
+        let mostActiveDay = 'N/A';
+        if (Object.keys(dayOfWeekCounts).length > 0) {
+            const sortedDays = Object.entries(dayOfWeekCounts).sort((a, b) => {
+                const [, dataA] = a;
+                const [, dataB] = b;
+
+                // Sort by count descending, then by latest date descending (tie-breaker)
+                if (dataB.count !== dataA.count) {
+                    return dataB.count - dataA.count;
+                }
+                return dataB.latestDate.getTime() - dataA.latestDate.getTime();
+            });
+
+            const [day] = sortedDays[0];
+            mostActiveDay = day;
+        }
 
         const filesWithSize = allFiles.filter(f => f.size && f.size > 0)
         const totalSize = filesWithSize.reduce((sum, f) => sum + (f.size || 0), 0)
@@ -519,10 +602,13 @@ export async function getAdvancedStats(userId: string): Promise<AdvancedStats> {
             dailyActivity,
             timeStats: {
                 downloadsToday,
+                downloadsYesterday,
                 downloadsThisWeek,
+                downloadsPreviousWeek,
                 downloadsThisMonth,
+                downloadsPreviousMonth,
                 averagePerDay: Math.round(averagePerDay * 100) / 100,
-                mostActiveHour: Number(mostActiveHour),
+                mostActiveHour,
                 mostActiveHourDate,
                 mostActiveDay,
                 firstDownloadDate,

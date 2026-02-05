@@ -1,58 +1,97 @@
-import { createSlice, type PayloadAction} from '@reduxjs/toolkit'
-import type { ExtensionStats, BlockedFile} from '../../types'
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
+import { getDownloadStats, getDuplicateDownloads } from '../../services/api'
 
-interface StatsState{
-    stats: ExtensionStats,
-    blockedFiles: BlockedFile[],
+interface DownloadItem {
+    id: string
+    filename: string
+    url: string
+    hash: string
+    size?: number
+    status: 'new' | 'duplicate'
+    fileCategory?: string
+    createdAt: string
+}
+
+interface DownloadStats {
+    totalDownloads: number
+    uniqueDownloads: number
+    duplicateDownloads: number
+    totalSize: number
+    uniqueFilesSize: number
+    duplicateFilesSize: number
+    averageDuration: number
+    fileCategories: Record<string, number>
+    fileExtensions: Record<string, number>
+    recentDownloads: DownloadItem[]
+}
+
+interface StatsState {
+    stats: DownloadStats | null
+    downloads: DownloadItem[]
+    duplicates: DownloadItem[]
     isLoading: boolean
+    error: string | null
 }
 
 const initialState: StatsState = {
-    stats: {
-        storageSaved: 0,
-        duplicatesBlocked: 0,
-        filesTracked: 0
-    },
-    blockedFiles: [],
-    isLoading: false
+    stats: null,
+    downloads: [],
+    duplicates: [],
+    isLoading: false,
+    error: null
 }
+
+// Async thunks
+export const fetchStats = createAsyncThunk(
+    'stats/fetchStats',
+    async () => {
+        const response = await getDownloadStats()
+        return response.data.data
+    }
+)
+
+export const fetchDuplicates = createAsyncThunk(
+    'stats/fetchDuplicates',
+    async (limit: number = 20) => {
+        const response = await getDuplicateDownloads(limit)
+        return response.data.data
+    }
+)
 
 const statsSlice = createSlice({
     name: 'stats',
     initialState,
-    reducers:{
-        setStats: (state, action: PayloadAction<ExtensionStats>) =>{
-            state.stats = action.payload;
-        },
-        addBlockedFile: (state, action: PayloadAction<BlockedFile>) =>{
-            state.blockedFiles.unshift(action.payload);
-            if (state.blockedFiles.length > 50) {
-                state.blockedFiles = state.blockedFiles.slice(0, 50);
-            }
-            state.stats.duplicatesBlocked += 1;
-        },
-        updateStorageSaved : (state, action: PayloadAction<number>) =>{
-            state.stats.storageSaved += action.payload;
-        },
-        incrementFilesTracked: (state) =>{
-            state.stats.filesTracked += 1;
-        },
-        setLoading: (state, action: PayloadAction<boolean>) =>{
-            state.isLoading = action.payload;
-        },
-        clearStats: (state) =>{
-            state.stats = initialState.stats;
-            state.blockedFiles = initialState.blockedFiles;
+    reducers: {
+        clearStats: (state) => {
+            state.stats = null
+            state.downloads = []
+            state.duplicates = []
+            state.error = null
         }
+    },
+    extraReducers: (builder) => {
+        // Fetch stats
+        builder.addCase(fetchStats.pending, (state) => {
+            state.isLoading = true
+            state.error = null
+        })
+        builder.addCase(fetchStats.fulfilled, (state, action) => {
+            state.stats = action.payload
+            // Populate downloads from the recentDownloads field in stats
+            state.downloads = action.payload.recentDownloads || []
+            state.isLoading = false
+        })
+        builder.addCase(fetchStats.rejected, (state, action) => {
+            state.isLoading = false
+            state.error = action.error.message || 'Failed to fetch stats'
+        })
+
+        // Fetch duplicates
+        builder.addCase(fetchDuplicates.fulfilled, (state, action) => {
+            state.duplicates = action.payload
+        })
     }
 })
 
-export const {
-    setStats,
-    addBlockedFile,
-    updateStorageSaved,
-    incrementFilesTracked,
-    setLoading,
-    clearStats
-} = statsSlice.actions;
-export default statsSlice.reducer;
+export const { clearStats } = statsSlice.actions
+export default statsSlice.reducer
