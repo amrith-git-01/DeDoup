@@ -63,6 +63,8 @@ export interface DownloadHistoryFilter {
     endDate?: string;
     search?: string;
     fileId?: string;
+    eventId?: string;
+    hour?: number;
 }
 
 export interface SummaryMetrics {
@@ -107,7 +109,9 @@ export interface ActivityTrend {
 export interface HabitsData {
     mostActiveHour: number | null;
     mostActiveHourDate: Date | null;
+    mostActiveHourCount: number | null;
     mostActiveDay: string;
+    mostActiveDayCount: number | null;
     currentStreak: number;
     longestStreak: number;
 }
