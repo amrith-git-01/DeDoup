@@ -1,20 +1,20 @@
 import mongoose from 'mongoose'
-import { AppError } from '../utils/AppError'
-import { DownloadEvent } from '../models/DownloadEvent'
-import { File } from '../models/File'
+
+import { AppError } from '../utils/AppError.js'
+import { DownloadEvent } from '../models/DownloadEvent.js'
+import { File } from '../models/File.js'
 import {
     DownloadPayload,
-    TimeBasedStats,
-    SizeStats,
-    SourceStats,
     DownloadHistoryFilter,
     DownloadHistoryItem,
     SummaryMetrics,
     ActivityTrend,
     DailyActivity,
     HabitsData,
-    FileMetrics
-} from '../types/stats'
+    FileMetrics,
+    SourceStats,
+    SizeStats
+} from '../types/stats.js'
 
 // ============================================
 // Find download by hash
@@ -26,6 +26,58 @@ export async function findByHash(userId: string, hash: string) {
     } catch (error: any) {
         throw new AppError(`Failed to find file by hash: ${error.message}`, 500)
     }
+}
+
+// ============================================
+// Track download (find-or-create file + create event)
+// ============================================
+
+export async function trackDownload(
+    userId: string,
+    body: {
+        filename: string;
+        url: string;
+        hash: string;
+        size?: number;
+        fileCategory?: string;
+        fileExtension?: string;
+        mimeType?: string;
+        duration?: number;
+    }
+) {
+    let sourceDomain = 'unknown';
+    try {
+        sourceDomain = new URL(body.url).hostname;
+    } catch {
+        // keep 'unknown'
+    }
+
+    let file = await File.findOne({ userId, hash: body.hash });
+    const status: 'new' | 'duplicate' = file ? 'duplicate' : 'new';
+
+    if (!file) {
+        file = await File.create({
+            userId,
+            filename: body.filename,
+            url: body.url,
+            hash: body.hash,
+            size: body.size,
+            fileCategory: body.fileCategory,
+            fileExtension: body.fileExtension,
+            mimeType: body.mimeType,
+            sourceDomain,
+        });
+    }
+
+    const event = await DownloadEvent.create({
+        userId,
+        fileId: file._id,
+        status,
+        duration: body.duration,
+        downloadedAt: new Date(),
+    });
+
+    return { event, file };
 }
 
 // ============================================
@@ -146,7 +198,7 @@ export async function getSummaryMetrics(userId: string): Promise<SummaryMetrics>
 
 export async function getDownloadHistory(
     userId: string,
-    limit: number = 20,
+    limit: number = 10,
     skip: number = 0,
     filters: DownloadHistoryFilter = {}
 ): Promise<{ history: DownloadHistoryItem[], total: number }> {
@@ -161,10 +213,25 @@ export async function getDownloadHistory(
                 matchStage.fileId = new mongoose.Types.ObjectId(filters.fileId);
             }
         }
+        if (filters.eventId) {
+            if (mongoose.Types.ObjectId.isValid(filters.eventId)) {
+                matchStage._id = new mongoose.Types.ObjectId(filters.eventId);
+            }
+        }
         if (filters.startDate || filters.endDate) {
             matchStage.downloadedAt = {};
             if (filters.startDate) matchStage.downloadedAt.$gte = new Date(filters.startDate);
             if (filters.endDate) matchStage.downloadedAt.$lte = new Date(filters.endDate);
+        }
+
+        if (filters.hour !== undefined) {
+            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            matchStage.$expr = {
+                $eq: [
+                    { $hour: { date: "$downloadedAt", timezone: timeZone } },
+                    filters.hour
+                ]
+            };
         }
 
         const pipeline: any[] = [
@@ -405,7 +472,7 @@ export async function getDailyActivity(userId: string): Promise<DailyActivity[]>
     try {
         const end = new Date();
         const start = new Date();
-        start.setDate(end.getDate() - 35); // Last 35 days
+        start.setDate(end.getDate() - 30); // Last 35 days
         start.setHours(0, 0, 0, 0);
         const activity = await DownloadEvent.aggregate([
             {
@@ -440,7 +507,7 @@ export async function getDailyActivity(userId: string): Promise<DailyActivity[]>
 }
 
 // ============================================
-// Get Habits (Streak, Peak Hour/Day)
+// Get Habits (Peak Hour/Day)
 // ============================================
 
 export async function getHabits(userId: string): Promise<HabitsData> {
@@ -475,6 +542,7 @@ export async function getHabits(userId: string): Promise<HabitsData> {
 
         let mostActiveHour: number | null = null;
         let mostActiveHourDate: Date | null = null;
+        let mostActiveHourCount: number | null = null;
 
         if (Object.keys(weeklyHourCounts).length > 0) {
             const sortedHours = Object.entries(weeklyHourCounts).sort((a, b) => {
@@ -486,6 +554,7 @@ export async function getHabits(userId: string): Promise<HabitsData> {
             const [hour, data] = sortedHours[0];
             mostActiveHour = parseInt(hour);
             mostActiveHourDate = data.latestDate;
+            mostActiveHourCount = data.count;
         }
 
         // --- Peak Day (This Week) ---
@@ -504,6 +573,7 @@ export async function getHabits(userId: string): Promise<HabitsData> {
         });
 
         let mostActiveDay = 'N/A';
+        let mostActiveDayCount: number | null = null;
         if (Object.keys(dayOfWeekCounts).length > 0) {
             const sortedDays = Object.entries(dayOfWeekCounts).sort((a, b) => {
                 const [, dataA] = a;
@@ -513,60 +583,15 @@ export async function getHabits(userId: string): Promise<HabitsData> {
             });
             const [day] = sortedDays[0];
             mostActiveDay = day;
-        }
-
-        // --- Streaks ---
-        const uniqueDates = Array.from(new Set(events.map((e: any) => new Date(e.downloadedAt).toDateString())))
-            .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-        let currentStreak = 0;
-        let longestStreak = 0;
-        let tempStreak = 0;
-
-        for (let i = 0; i < uniqueDates.length; i++) {
-            const currentDate = new Date(uniqueDates[i]);
-            const prevDate = i > 0 ? new Date(uniqueDates[i - 1]) : null;
-
-            if (prevDate) {
-                const diffTime = Math.abs(currentDate.getTime() - prevDate.getTime());
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                if (diffDays === 1) {
-                    tempStreak++;
-                } else {
-                    tempStreak = 1;
-                }
-            } else {
-                tempStreak = 1;
-            }
-
-            if (tempStreak > longestStreak) longestStreak = tempStreak;
-        }
-
-        const lastDownloadDateStr = uniqueDates[uniqueDates.length - 1];
-        if (lastDownloadDateStr) {
-            const lastDownloadDate = new Date(lastDownloadDateStr);
-            const todayDate = new Date();
-            todayDate.setHours(0, 0, 0, 0);
-            const yesterdayDate = new Date(todayDate);
-            yesterdayDate.setDate(todayDate.getDate() - 1);
-
-            const lastDateMidnight = new Date(lastDownloadDate);
-            lastDateMidnight.setHours(0, 0, 0, 0); // Normalize to midnight
-
-            // Current streak is valid if last download was today or yesterday
-            if (lastDateMidnight.getTime() === todayDate.getTime() || lastDateMidnight.getTime() === yesterdayDate.getTime()) {
-                currentStreak = tempStreak;
-            } else {
-                currentStreak = 0;
-            }
+            mostActiveDayCount = sortedDays[0][1].count;
         }
 
         return {
             mostActiveHour,
             mostActiveHourDate,
+            mostActiveHourCount,
             mostActiveDay,
-            currentStreak,
-            longestStreak
+            mostActiveDayCount,
         };
 
     } catch (error: any) {
@@ -629,7 +654,7 @@ export async function getRecentlyBlocked(
 
 export async function getDuplicateDownloads(
     userId: string,
-    limit: number = 20
+    limit: number = 10
 ): Promise<DownloadHistoryItem[]> {
     try {
         const events = await DownloadEvent.find({
@@ -671,31 +696,81 @@ export async function getDuplicateDownloads(
 // ============================================
 export async function getSourceStats(userId: string): Promise<SourceStats> {
     try {
-        const allFiles = await File.find({ userId }).lean();
+        const sourcesRaw = await DownloadEvent.aggregate([
+            {
+                $match: {
+                    userId: new mongoose.Types.ObjectId(userId),
+                },
+            },
+            {
+                $lookup: {
+                    from: 'files',
+                    localField: 'fileId',
+                    foreignField: '_id',
+                    as: 'file',
+                },
+            },
+            { $unwind: '$file' },
+            {
+                $group: {
+                    _id: {
+                        $toLower: {
+                            $ifNull: ['$file.sourceDomain', 'unknown'],
+                        },
+                    },
+                    totalDownloads: { $sum: 1 },
+                    newDownloads: {
+                        $sum: { $cond: [{ $eq: ['$status', 'new'] }, 1, 0] },
+                    },
+                    duplicateDownloads: {
+                        $sum: {
+                            $cond: [{ $eq: ['$status', 'duplicate'] }, 1, 0],
+                        },
+                    },
+                    totalSize: { $sum: '$file.size' },
+                    newSize: {
+                        $sum: {
+                            $cond: [{ $eq: ['$status', 'new'] }, '$file.size', 0],
+                        },
+                    },
+                    duplicateSize: {
+                        $sum: {
+                            $cond: [{ $eq: ['$status', 'duplicate'] }, '$file.size', 0],
+                        },
+                    },
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    domain: '$_id',
+                    totalDownloads: 1,
+                    newDownloads: 1,
+                    duplicateDownloads: 1,
+                    totalSize: 1,
+                    newSize: 1,
+                    duplicateSize: 1,
+                },
+            },
+            { $sort: { totalDownloads: -1 } }
+        ]);
 
-        const domainCounts: Record<string, number> = {};
-        allFiles.forEach(f => {
-            if (f.sourceDomain) {
-                domainCounts[f.sourceDomain] = (domainCounts[f.sourceDomain] || 0) + 1;
-            }
-        });
+        const sources = sourcesRaw.map((item: any) => ({
+            domain: item.domain,
+            totalDownloads: item.totalDownloads ?? 0,
+            newDownloads: item.newDownloads ?? 0,
+            duplicateDownloads: item.duplicateDownloads ?? 0,
+            totalSize: item.totalSize ?? 0,
+            newSize: item.newSize ?? 0,
+            duplicateSize: item.duplicateSize ?? 0,
+        }));
 
-        const topSources = Object.entries(domainCounts)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10)
-            .map(([domain, count]) => ({ domain, count }));
-
-        const mostDownloadedDomain = topSources[0]?.domain || null;
-
-        return {
-            topSources,
-            downloadsByDomain: domainCounts,
-            mostDownloadedDomain
-        };
+        return { sources };
     } catch (error: any) {
         throw new AppError(`Failed to fetch source statistics: ${error.message}`, 500);
     }
 }
+
 
 // ============================================
 // Get Size Statistics

@@ -1,8 +1,6 @@
 import { Request, Response } from 'express'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { AppError } from '../utils/AppError.js'
-import { DownloadEvent } from '../models/DownloadEvent.js'
-import { File } from '../models/File.js'
 import {
     getDownloadHistory,
     getDuplicateDownloads,
@@ -12,7 +10,8 @@ import {
     getHabits,
     getFileMetrics,
     getSourceStats,
-    getSizeStats
+    getSizeStats,
+    trackDownload as trackDownloadService,
 } from '../services/downloadService.js'
 
 // ============================================
@@ -98,8 +97,13 @@ export const getSourceStatsController = asyncHandler(async (req: Request, res: R
     if (!userId) {
         throw new AppError('Unauthorized', 401);
     }
+
     const stats = await getSourceStats(userId);
-    res.json({ success: true, data: stats });
+
+    res.json({
+        success: true,
+        data: stats,
+    });
 });
 
 // ============================================
@@ -120,63 +124,32 @@ export const getSizeStatsController = asyncHandler(async (req: Request, res: Res
 
 export const trackDownloadController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.userId
-    const { filename, url, hash, size, fileCategory, fileExtension, mimeType, duration } = req.body
-
     if (!userId) {
         throw new AppError('Unauthorized', 401)
     }
+
+    const { filename, url, hash, size, fileCategory, fileExtension, mimeType, duration } = req.body
 
     if (!filename || !url || !hash) {
         throw new AppError('Missing required fields', 400)
     }
 
-    // Process source domain from URL
-    let sourceDomain = 'unknown';
-    try {
-        sourceDomain = new URL(url).hostname;
-    } catch (e) {
-        // fallback to unknown
-    }
-
-    // Check if file exists
-    let file = await File.findOne({ hash, userId })
-    let status: 'new' | 'duplicate' = 'new'
-
-    if (file) {
-        status = 'duplicate'
-    } else {
-        file = await File.create({
-            userId,
-            filename,
-            url,
-            hash,
-            size,
-            fileCategory,
-            fileExtension,
-            mimeType,
-            sourceDomain
-        })
-    }
-
-    // Record the event
-    const event = await DownloadEvent.create({
-        userId,
-        fileId: file._id,
-        status,
+    const { event, file } = await trackDownloadService(userId, {
+        filename,
+        url,
+        hash,
+        size,
+        fileCategory,
+        fileExtension,
+        mimeType,
         duration,
-        downloadedAt: new Date()
     })
 
     res.json({
         success: true,
-        data: {
-            event,
-            file
-        }
+        data: { event, file },
     })
 })
-
-// getStatsController removed
 
 // ============================================
 // Get Download History
@@ -185,7 +158,7 @@ export const trackDownloadController = asyncHandler(async (req: Request, res: Re
 export const getHistoryController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.userId
     const page = parseInt(req.query.page as string) || 1
-    const limit = parseInt(req.query.limit as string) || 20
+    const limit = parseInt(req.query.limit as string) || 10
 
     // Extract filters
     const filters = {
@@ -195,7 +168,9 @@ export const getHistoryController = asyncHandler(async (req: Request, res: Respo
         startDate: req.query.startDate as string,
         endDate: req.query.endDate as string,
         search: req.query.search as string,
-        fileId: req.query.fileId as string
+        fileId: req.query.fileId as string,
+        eventId: req.query.eventId as string,
+        hour: req.query.hour ? parseInt(req.query.hour as string) : undefined
     }
 
     if (!userId) {
