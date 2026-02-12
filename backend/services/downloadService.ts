@@ -363,7 +363,11 @@ export async function getFileMetrics(
                             $group: {
                                 _id: { $toLower: { $ifNull: ["$file.fileCategory", "other"] } },
                                 count: { $sum: 1 },
-                                size: { $sum: "$file.size" }
+                                size: { $sum: "$file.size" },
+                                newCount: { $sum: { $cond: [{ $eq: ["$status", "new"] }, 1, 0] } },
+                                duplicateCount: { $sum: { $cond: [{ $eq: ["$status", "duplicate"] }, 1, 0] } },
+                                newSize: { $sum: { $cond: [{ $eq: ["$status", "new"] }, "$file.size", 0] } },
+                                duplicateSize: { $sum: { $cond: [{ $eq: ["$status", "duplicate"] }, "$file.size", 0] } },
                             }
                         },
                         {
@@ -371,7 +375,11 @@ export async function getFileMetrics(
                                 _id: 0,
                                 name: "$_id",
                                 count: 1,
-                                size: 1
+                                size: 1,
+                                newCount: 1,
+                                duplicateCount: 1,
+                                newSize: 1,
+                                duplicateSize: 1,
                             }
                         },
                         { $sort: { count: -1 } }
@@ -381,7 +389,11 @@ export async function getFileMetrics(
                             $group: {
                                 _id: { $toLower: { $ifNull: ["$file.fileExtension", "unknown"] } },
                                 count: { $sum: 1 },
-                                size: { $sum: "$file.size" }
+                                size: { $sum: "$file.size" },
+                                newCount: { $sum: { $cond: [{ $eq: ["$status", "new"] }, 1, 0] } },
+                                duplicateCount: { $sum: { $cond: [{ $eq: ["$status", "duplicate"] }, 1, 0] } },
+                                newSize: { $sum: { $cond: [{ $eq: ["$status", "new"] }, "$file.size", 0] } },
+                                duplicateSize: { $sum: { $cond: [{ $eq: ["$status", "duplicate"] }, "$file.size", 0] } },
                             }
                         },
                         {
@@ -389,7 +401,11 @@ export async function getFileMetrics(
                                 _id: 0,
                                 name: "$_id",
                                 count: 1,
-                                size: 1
+                                size: 1,
+                                newCount: 1,
+                                duplicateCount: 1,
+                                newSize: 1,
+                                duplicateSize: 1,
                             }
                         },
                         { $sort: { count: -1 } }

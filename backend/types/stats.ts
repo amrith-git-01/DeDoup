@@ -110,6 +110,10 @@ export interface FileMetricItem {
     name: string;
     count: number;
     size: number;
+    newCount: number;
+    newSize: number;
+    duplicateCount: number;
+    duplicateSize: number;
 }
 
 export interface FileMetrics {
