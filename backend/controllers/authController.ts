@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { signupSchemaZod, loginSchemaZod } from '../models/User.js';
 import { signup, login, getUserById } from '../services/authService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { AppError } from '../utils/AppError.js';
 
 export const signupController = asyncHandler(async (req: Request, res: Response) => {
     const validatedData = signupSchemaZod.parse(req.body);
@@ -37,10 +38,7 @@ export const loginController = asyncHandler(async (req: Request, res: Response) 
 export const getMeController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.userId;
     if (!userId) {
-        return res.status(401).json({
-            success: false,
-            message: 'Unauthorized',
-        });
+        throw new AppError('Unauthorized', 401);
     }
     const user = await getUserById(userId);
     res.status(200).json({

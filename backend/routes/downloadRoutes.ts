@@ -1,32 +1,35 @@
-// backend/routes/downRoutes.ts
-
-import { Router } from 'express'
+import express from 'express'
 import { authMiddleware } from '../middleware/authMiddleware.js'
 import {
     trackDownloadController,
-    getStatsController,
     getHistoryController,
     getDuplicatesController,
-    getAdvancedStatsController
+    getSummaryMetricsController,
+    getTrendsController,
+    getActivityController,
+    getHabitsController,
+    getFileMetricsController,
+    getSourceStatsController,
+    getSizeStatsController
 } from '../controllers/downloadController.js'
 
-const router = Router()
+const router = express.Router()
 
-// All routes require authentication
+// Protect all routes with auth middleware
 router.use(authMiddleware)
 
-// Track download (with duplicate detection)
+// Basic stats and tracking
 router.post('/track', trackDownloadController)
-
-// Get statistics
-router.get('/stats', getStatsController)
-
-// Get download history
 router.get('/history', getHistoryController)
-
-// Get duplicate downloads
 router.get('/duplicates', getDuplicatesController)
 
-router.get('/advanced-stats', getAdvancedStatsController)
+// Metrics & Analytics
+router.get('/metrics/summary', getSummaryMetricsController)
+router.get('/metrics/trends', getTrendsController)
+router.get('/metrics/activity', getActivityController)
+router.get('/metrics/habits', getHabitsController)
+router.get('/metrics/files', getFileMetricsController)
+router.get('/metrics/sources', getSourceStatsController)
+router.get('/metrics/size', getSizeStatsController)
 
 export default router

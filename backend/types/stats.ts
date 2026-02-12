@@ -18,33 +18,6 @@ export interface DailyActivity {
     duplicate: number;
 }
 
-export interface DownloadStats {
-    totalDownloads: number;
-    uniqueDownloads: number;
-    duplicateDownloads: number;
-    totalSize: number;
-    uniqueFilesSize: number;
-    duplicateFilesSize: number;
-    averageDuration: number;
-    fileCategories: Record<string, number>;
-    fileExtensions: Record<string, number>;
-    recentDownloads: DownloadHistoryItem[];
-}
-
-export interface DownloadHistoryItem {
-    id: string
-    filename: string
-    url: string
-    hash: string
-    size?: number
-    fileExtension?: string
-    mimeType?: string
-    sourceDomain?: string
-    fileCategory?: string
-    status: 'new' | 'duplicate'
-    createdAt: Date
-}
-
 export interface TimeBasedStats {
     downloadsToday: number
     downloadsYesterday: number
@@ -58,8 +31,6 @@ export interface TimeBasedStats {
     mostActiveDay: string
     firstDownloadDate: Date | null
     firstDownloadFile?: { filename: string, size: number } | null
-    currentStreak: number;
-    longestStreak: number;
 }
 
 export interface SizeStats {
@@ -76,29 +47,90 @@ export interface SizeStats {
     potentialSavingsPercent: number
 }
 
+export interface DownloadHistoryFilter {
+    status?: 'new' | 'duplicate';
+    fileCategory?: string;
+    fileExtension?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+    fileId?: string;
+    eventId?: string;
+    hour?: number;
+}
+
+export interface SummaryMetrics {
+    totalDownloads: number;
+    newDownloads: number;
+    duplicateDownloads: number;
+    totalSize: number;
+    newSize: number;
+    duplicateSize: number;
+}
+
+export interface DownloadHistoryItem {
+    _id: string;
+    status: 'new' | 'duplicate';
+    downloadedAt: Date;
+    duration?: number;
+
+    fileId: string;
+    filename: string;
+    url: string;
+    hash: string;
+    size: number;
+    fileExtension?: string;
+    fileCategory?: string;
+    mimeType?: string;
+    sourceDomain?: string;
+    fileCreatedAt: Date;
+    fileUpdatedAt: Date;
+}
+
+export interface TrendMetric {
+    count: number;
+    change: number;
+}
+
+export interface ActivityTrend {
+    today: TrendMetric;
+    week: TrendMetric;
+    month: TrendMetric;
+}
+
+export interface HabitsData {
+    mostActiveHour: number | null;
+    mostActiveHourDate: Date | null;
+    mostActiveHourCount: number | null;
+    mostActiveDay: string;
+    mostActiveDayCount: number | null;
+}
+
+export interface FileMetricItem {
+    name: string;
+    count: number;
+    size: number;
+    newCount: number;
+    newSize: number;
+    duplicateCount: number;
+    duplicateSize: number;
+}
+
+export interface FileMetrics {
+    categories: FileMetricItem[];
+    extensions: FileMetricItem[];
+}
+
+export interface SourceMetricItem {
+    domain: string;
+    totalDownloads: number;
+    newDownloads: number;
+    duplicateDownloads: number;
+    totalSize: number;
+    newSize: number;
+    duplicateSize: number;
+}
+
 export interface SourceStats {
-    topSources: Array<{ domain: string; count: number }>
-    downloadsByDomain: Record<string, number>
-    mostDownloadedDomain: string | null
-}
-export interface FileTypeStats {
-    mostDownloadedType: string | null
-    largestCategoryBySize: string | null
-    duplicateRateByCategory: Record<string, number>
-}
-export interface DuplicateStats {
-    duplicateRatePercent: number
-    mostDuplicatedFile: {
-        filename: string
-        count: number
-    } | null
-    averageDuplicateCount: number
-}
-export interface AdvancedStats {
-    timeStats: TimeBasedStats
-    sizeStats: SizeStats
-    sourceStats: SourceStats
-    fileTypeStats: FileTypeStats
-    duplicateStats: DuplicateStats
-    dailyActivity: DailyActivity[]
+    sources: SourceMetricItem[];
 }
