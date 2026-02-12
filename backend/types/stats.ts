@@ -31,8 +31,6 @@ export interface TimeBasedStats {
     mostActiveDay: string
     firstDownloadDate: Date | null
     firstDownloadFile?: { filename: string, size: number } | null
-    currentStreak: number;
-    longestStreak: number;
 }
 
 export interface SizeStats {
@@ -47,12 +45,6 @@ export interface SizeStats {
     } | null
     totalStorageUsed: number
     potentialSavingsPercent: number
-}
-
-export interface SourceStats {
-    topSources: Array<{ domain: string; count: number }>
-    downloadsByDomain: Record<string, number>
-    mostDownloadedDomain: string | null
 }
 
 export interface DownloadHistoryFilter {
@@ -112,8 +104,6 @@ export interface HabitsData {
     mostActiveHourCount: number | null;
     mostActiveDay: string;
     mostActiveDayCount: number | null;
-    currentStreak: number;
-    longestStreak: number;
 }
 
 export interface FileMetricItem {
@@ -125,4 +115,18 @@ export interface FileMetricItem {
 export interface FileMetrics {
     categories: FileMetricItem[];
     extensions: FileMetricItem[];
+}
+
+export interface SourceMetricItem {
+    domain: string;
+    totalDownloads: number;
+    newDownloads: number;
+    duplicateDownloads: number;
+    totalSize: number;
+    newSize: number;
+    duplicateSize: number;
+}
+
+export interface SourceStats {
+    sources: SourceMetricItem[];
 }
