@@ -28,7 +28,7 @@ export function authMiddleware(
 
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            throw new AppError('no token provided', 401);
+            return next(new AppError('no token provided', 401));
         }
         const token = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, JWT_SECRET as string) as { userId: string };
@@ -40,11 +40,11 @@ export function authMiddleware(
     }
     catch (error) {
         if (error instanceof jwt.JsonWebTokenError) {
-            throw new AppError('Invalid token', 401);
+            return next(new AppError('Invalid token', 401));
         }
         if (error instanceof jwt.TokenExpiredError) {
-            throw new AppError('Token expired', 401);
+            return next(new AppError('Token expired', 401));
         }
-        throw new AppError('Unauthorized', 401);
+        return next(new AppError('Unauthorized', 401));
     }
 }
