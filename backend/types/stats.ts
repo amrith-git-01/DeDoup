@@ -33,20 +33,6 @@ export interface TimeBasedStats {
     firstDownloadFile?: { filename: string, size: number } | null
 }
 
-export interface SizeStats {
-    averageFileSize: number
-    largestFile: {
-        filename: string
-        size: number
-    } | null
-    smallestFile: {
-        filename: string
-        size: number
-    } | null
-    totalStorageUsed: number
-    potentialSavingsPercent: number
-}
-
 export interface DownloadHistoryFilter {
     status?: 'new' | 'duplicate';
     fileCategory?: string;
