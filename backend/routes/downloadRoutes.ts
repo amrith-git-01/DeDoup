@@ -10,7 +10,6 @@ import {
     getHabitsController,
     getFileMetricsController,
     getSourceStatsController,
-    getSizeStatsController
 } from '../controllers/downloadController.js'
 
 const router = express.Router()
@@ -30,6 +29,5 @@ router.get('/metrics/activity', getActivityController)
 router.get('/metrics/habits', getHabitsController)
 router.get('/metrics/files', getFileMetricsController)
 router.get('/metrics/sources', getSourceStatsController)
-router.get('/metrics/size', getSizeStatsController)
 
 export default router
