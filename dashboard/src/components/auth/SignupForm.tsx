@@ -1,34 +1,7 @@
 // dashboard/src/components/auth/SignupForm.tsx
-import { TextField } from '../ui/TextField'
-import { Button } from '../ui/Button'
-
-interface SignupFormProps {
-  email: string
-  password: string
-  username: string
-  passwordConfirm: string
-  emailError?: string
-  passwordError?: string
-  usernameError?: string
-  passwordConfirmError?: string
-  generalError?: string | null
-  isLoading: boolean
-  isDirty: boolean
-  showPassword: boolean
-  showPasswordConfirm: boolean
-  onReset: () => void
-  onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  onPasswordChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  onUsernameChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  onPasswordConfirmChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  onClearEmail: () => void
-  onClearUsername: () => void
-  onClearPassword: () => void
-  onClearPasswordConfirm: () => void
-  onTogglePassword: () => void
-  onTogglePasswordConfirm: () => void
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
-}
+import { TextField } from '../ui/TextField';
+import { Button } from '../ui/Button';
+import type { SignupFormProps } from '../../types/auth';
 
 export function SignupForm({
   email,
@@ -84,55 +57,50 @@ export function SignupForm({
         onClear={onClearEmail}
       />
 
-<TextField
-  label="Password"
-  name="password"
-  type={showPassword ? 'text' : 'password'}
-  autoComplete="new-password"
-  required
-  placeholder="Minimum 8 characters"
-  value={password}
-  onChange={onPasswordChange}
-  error={passwordError}
-  showPasswordToggle
-  isPasswordVisible={showPassword}
-  onTogglePassword={onTogglePassword}
-/>
+      <TextField
+        label="Password"
+        name="password"
+        type={showPassword ? 'text' : 'password'}
+        autoComplete="new-password"
+        required
+        placeholder="Minimum 8 characters"
+        value={password}
+        onChange={onPasswordChange}
+        error={passwordError}
+        showPasswordToggle
+        isPasswordVisible={showPassword}
+        onTogglePassword={onTogglePassword}
+      />
 
-<TextField
-  label="Confirm Password"
-  name="passwordConfirm"
-  type={showPasswordConfirm ? 'text' : 'password'}
-  autoComplete="new-password"
-  required
-  placeholder="Re-enter your password"
-  value={passwordConfirm}
-  onChange={onPasswordConfirmChange}
-  error={passwordConfirmError}
-  showPasswordToggle
-  isPasswordVisible={showPasswordConfirm}
-  onTogglePassword={onTogglePasswordConfirm}
-/>
+      <TextField
+        label="Confirm Password"
+        name="passwordConfirm"
+        type={showPasswordConfirm ? 'text' : 'password'}
+        autoComplete="new-password"
+        required
+        placeholder="Re-enter your password"
+        value={passwordConfirm}
+        onChange={onPasswordConfirmChange}
+        error={passwordConfirmError}
+        showPasswordToggle
+        isPasswordVisible={showPasswordConfirm}
+        onTogglePassword={onTogglePasswordConfirm}
+      />
 
-<div className="flex gap-3 mt-6">
-  <Button
-  type="button"
-  variant="ghost"
-  className="flex-1"
-  disabled={!isDirty}
-  onClick={onReset}
->
-  Reset
-</Button>
-  <Button
-    type="submit"
-    variant="primary"
-    className="flex-1"
-    isLoading={isLoading}
-  >
-    {isLoading ? 'Signing up...' : 'Sign up'}
-  </Button>
-</div>
+      <div className="flex gap-3 mt-6">
+        <Button
+          type="button"
+          variant="ghost"
+          className="flex-1"
+          disabled={!isDirty}
+          onClick={onReset}
+        >
+          Reset
+        </Button>
+        <Button type="submit" variant="primary" className="flex-1" isLoading={isLoading}>
+          {isLoading ? 'Signing up...' : 'Sign up'}
+        </Button>
+      </div>
     </form>
-  )
+  );
 }
