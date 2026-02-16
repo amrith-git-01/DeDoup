@@ -9,6 +9,7 @@ import type {
     BrowsingDailyActivity,
     BrowsingHabits,
     TopSiteItem,
+    TodayByDomainItem,
 } from '../types/browsing.js'
 
 const toObjectId = (id: string) => new mongoose.Types.ObjectId(id);
@@ -96,6 +97,62 @@ export async function getSummary(userId: string): Promise<BrowsingSummary> {
         totalSecondsWeek: weekRes[0]?.total ?? 0,
         totalSecondsMonth: monthRes[0]?.total ?? 0,
     }
+}
+
+export async function getTodayByDomain(
+    userId: string,
+    options?: { startDate: Date; endDate: Date }
+): Promise<TodayByDomainItem[]> {
+    const uid = toObjectId(userId)
+    let startTime: Date
+    let endTime: Date | undefined
+    if (options?.startDate != null && options?.endDate != null) {
+        startTime = options.startDate
+        endTime = options.endDate
+    } else {
+        const now = new Date()
+        startTime = startOfDay(now)
+    }
+    const matchFilter: Record<string, unknown> = { userId: uid }
+    if (endTime != null) {
+        matchFilter.startTime = { $gte: startTime, $lte: endTime }
+    } else {
+        matchFilter.startTime = { $gte: startTime }
+    }
+    const rows = await BrowsingVisit.aggregate([
+        { $match: matchFilter },
+        {
+            $group: {
+                _id: '$domainId',
+                totalSeconds: { $sum: '$durationSeconds' },
+                visitCount: { $sum: 1 },
+            },
+        },
+        { $sort: { totalSeconds: -1 } },
+        { $limit: 30 },
+        {
+            $lookup: {
+                from: 'browsingdomains',
+                localField: '_id',
+                foreignField: '_id',
+                as: 'domainDoc',
+            },
+        },
+        { $unwind: '$domainDoc' },
+        {
+            $project: {
+                domain: '$domainDoc.domain',
+                totalSeconds: 1,
+                visitCount: 1,
+                _id: 0,
+            },
+        },
+    ])
+    return rows.map((r) => ({
+        domain: r.domain ?? '',
+        totalSeconds: r.totalSeconds,
+        visitCount: r.visitCount ?? 0,
+    }))
 }
 
 export async function getTrends(userId: string): Promise<BrowsingTrends> {

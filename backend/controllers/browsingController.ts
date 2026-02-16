@@ -8,6 +8,7 @@ import {
     getDailyActivity,
     getHabits,
     getTopSites,
+    getTodayByDomain,
 } from '../services/browsingService.js'
 
 export const ingestEventsController = asyncHandler(async (req: Request, res: Response) => {
@@ -52,4 +53,11 @@ export const getTopSitesController = asyncHandler(async (req: Request, res: Resp
     if (!userId) throw new AppError('Unauthorized', 401)
     const domains = await getTopSites(userId)
     res.json({ success: true, data: { domains } })
+})
+
+export const getTodayByDomainController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.userId
+    if (!userId) throw new AppError('Unauthorized', 401)
+    const data = await getTodayByDomain(userId)
+    res.json({ success: true, data })
 })

@@ -7,6 +7,7 @@ import {
     getActivityController,
     getHabitsController,
     getTopSitesController,
+    getTodayByDomainController,
 } from '../controllers/browsingController.js'
 
 const router = express.Router()
@@ -18,5 +19,6 @@ router.get('/metrics/trends', getTrendsController)
 router.get('/metrics/activity', getActivityController)
 router.get('/metrics/habits', getHabitsController)
 router.get('/metrics/top-sites', getTopSitesController)
+router.get('/metrics/today-by-domain', getTodayByDomainController)
 
 export default router;
