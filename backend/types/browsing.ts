@@ -47,3 +47,9 @@ export interface TopSiteItem {
 export interface TopSitesResponse {
     domains: TopSiteItem[]
 }
+
+export interface TodayByDomainItem {
+    domain: string
+    visitCount: number
+    totalSeconds: number
+}
