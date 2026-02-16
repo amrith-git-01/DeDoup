@@ -33,19 +33,19 @@ app.use(
     })
 );
 
-const downloadsLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 200,
-    message: { success: false, message: 'Too many requests, please try again later.' },
-});
-app.use('/api/downloads', downloadsLimiter);
+// const downloadsLimiter = rateLimit({
+//     windowMs: 15 * 60 * 1000,
+//     limit: 200,
+//     message: { success: false, message: 'Too many requests, please try again later.' },
+// });
+// app.use('/api/downloads', downloadsLimiter);
 
-const browsingLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 300,
-    message: { success: false, message: 'Too many requests, please try again later.' },
-});
-app.use('/api/browsing', browsingLimiter);
+// const browsingLimiter = rateLimit({
+//     windowMs: 15 * 60 * 1000,
+//     limit: 300,
+//     message: { success: false, message: 'Too many requests, please try again later.' },
+// });
+// app.use('/api/browsing', browsingLimiter);
 
 app.use(express.json({ limit: '100kb' }));
 
