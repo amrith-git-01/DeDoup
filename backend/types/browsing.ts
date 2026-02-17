@@ -28,6 +28,7 @@ export interface BrowsingDailyActivity {
     date: string
     totalSeconds: number
     visitCount: number
+    siteCount: number
 }
 
 export interface BrowsingHabits {
@@ -52,4 +53,23 @@ export interface TodayByDomainItem {
     domain: string
     visitCount: number
     totalSeconds: number
+}
+
+export interface BrowsingPeriodMetric {
+    totalSeconds: number
+    visitCount: number
+    siteCount: number
+}
+
+export interface BrowsingPeriodStats {
+    week: BrowsingPeriodMetric
+    prevWeek: BrowsingPeriodMetric
+    month: BrowsingPeriodMetric
+    prevMonth: BrowsingPeriodMetric
+}
+
+export interface RecentVisitItem {
+    domain: string
+    durationSeconds: number
+    endTime: string
 }
