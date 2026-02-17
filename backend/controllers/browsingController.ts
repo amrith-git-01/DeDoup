@@ -9,6 +9,8 @@ import {
     getHabits,
     getTopSites,
     getTodayByDomain,
+    getPeriodStats,
+    getRecentVisits,
 } from '../services/browsingService.js'
 
 export const ingestEventsController = asyncHandler(async (req: Request, res: Response) => {
@@ -59,5 +61,20 @@ export const getTodayByDomainController = asyncHandler(async (req: Request, res:
     const userId = req.user?.userId
     if (!userId) throw new AppError('Unauthorized', 401)
     const data = await getTodayByDomain(userId)
+    res.json({ success: true, data })
+})
+
+export const getPeriodStatsController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.userId
+    if (!userId) throw new AppError('Unauthorized', 401)
+    const data = await getPeriodStats(userId)
+    res.json({ success: true, data })
+})
+
+export const getRecentVisitsController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.userId
+    if (!userId) throw new AppError('Unauthorized', 401)
+    const limit = Math.min(Number(req.query.limit) || 10, 50)
+    const data = await getRecentVisits(userId, limit)
     res.json({ success: true, data })
 })

@@ -10,6 +10,8 @@ import type {
     BrowsingHabits,
     TopSiteItem,
     TodayByDomainItem,
+    BrowsingPeriodStats,
+    RecentVisitItem,
 } from '../types/browsing.js'
 
 const toObjectId = (id: string) => new mongoose.Types.ObjectId(id);
@@ -153,6 +155,7 @@ export async function getTodayByDomain(
         totalSeconds: r.totalSeconds,
         visitCount: r.visitCount ?? 0,
     }))
+
 }
 
 export async function getTrends(userId: string): Promise<BrowsingTrends> {
@@ -224,6 +227,15 @@ export async function getDailyActivity(userId: string): Promise<BrowsingDailyAct
                 _id: { $dateToString: { format: '%Y-%m-%d', date: '$startTime' } },
                 totalSeconds: { $sum: '$durationSeconds' },
                 visitCount: { $sum: 1 },
+                domainIds: { $addToSet: '$domainId' },
+            },
+        },
+        {
+            $project: {
+                _id: 1,
+                totalSeconds: 1,
+                visitCount: 1,
+                siteCount: { $size: '$domainIds' },
             },
         },
         { $sort: { _id: 1 } },
@@ -232,6 +244,7 @@ export async function getDailyActivity(userId: string): Promise<BrowsingDailyAct
         date: r._id,
         totalSeconds: r.totalSeconds,
         visitCount: r.visitCount,
+        siteCount: r.siteCount ?? 0,
     }))
 }
 
@@ -312,5 +325,88 @@ export async function getTopSites(userId: string): Promise<TopSiteItem[]> {
         domain: r.domain ?? '',
         totalSeconds: r.totalSeconds,
         visitCount: r.visitCount,
+    }))
+}
+
+export async function getPeriodStats(userId: string): Promise<BrowsingPeriodStats> {
+    const now = new Date()
+    const weekStart = startOfWeek(now)
+    const prevWeekStart = new Date(weekStart)
+    prevWeekStart.setDate(prevWeekStart.getDate() - 7)
+    const prevWeekEnd = new Date(weekStart)
+    prevWeekEnd.setMilliseconds(-1)
+    const monthStart = startOfMonth(now)
+    const prevMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1)
+    const prevMonthEnd = new Date(monthStart)
+    prevMonthEnd.setMilliseconds(-1)
+    const uid = toObjectId(userId)
+
+    const runPeriod = async (start: Date, end: Date) => {
+        const rows = await BrowsingVisit.aggregate([
+            {
+                $match: {
+                    userId: uid,
+                    startTime: { $gte: start, $lte: end },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalSeconds: { $sum: '$durationSeconds' },
+                    visitCount: { $sum: 1 },
+                    domainIds: { $addToSet: '$domainId' },
+                },
+            },
+            { $project: { totalSeconds: 1, visitCount: 1, siteCount: { $size: '$domainIds' } } },
+        ])
+        const r = rows[0]
+        return {
+            totalSeconds: r?.totalSeconds ?? 0,
+            visitCount: r?.visitCount ?? 0,
+            siteCount: r?.siteCount ?? 0,
+        }
+    }
+
+    const [week, prevWeek, month, prevMonth] = await Promise.all([
+        runPeriod(weekStart, now),
+        runPeriod(prevWeekStart, prevWeekEnd),
+        runPeriod(monthStart, now),
+        runPeriod(prevMonthStart, prevMonthEnd),
+    ])
+
+    return { week, prevWeek, month, prevMonth }
+}
+
+export async function getRecentVisits(
+    userId: string,
+    limit = 10
+): Promise<RecentVisitItem[]> {
+    const uid = toObjectId(userId)
+    const rows = await BrowsingVisit.aggregate([
+        { $match: { userId: uid } },
+        { $sort: { endTime: -1 } },
+        { $limit: limit },
+        {
+            $lookup: {
+                from: 'browsingdomains',
+                localField: 'domainId',
+                foreignField: '_id',
+                as: 'domainDoc',
+            },
+        },
+        { $unwind: '$domainDoc' },
+        {
+            $project: {
+                domain: '$domainDoc.domain',
+                durationSeconds: 1,
+                endTime: 1,
+                _id: 0,
+            },
+        },
+    ])
+    return rows.map((r) => ({
+        domain: r.domain ?? '',
+        durationSeconds: r.durationSeconds,
+        endTime: r.endTime instanceof Date ? r.endTime.toISOString() : String(r.endTime),
     }))
 }
