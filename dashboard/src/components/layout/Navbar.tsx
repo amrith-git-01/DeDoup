@@ -15,6 +15,7 @@ export function Navbar() {
   const navItems = [
     { to: '/home', label: 'Home' },
     { to: '/downloads', label: 'Downloads' },
+    { to: '/browsing', label: 'Browsing' },
     { to: '/settings', label: 'Settings' },
   ];
 

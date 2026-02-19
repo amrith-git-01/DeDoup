@@ -147,11 +147,18 @@ export const getHistoryController = asyncHandler(async (req: Request, res: Respo
     const page = parseInt(req.query.page as string) || 1
     const limit = parseInt(req.query.limit as string) || 10
 
-    // Extract filters
+    // Extract filters (excludeSourceDomains: comma-separated list of domains to exclude)
+    const excludeSourceDomainsRaw = req.query.excludeSourceDomains as string
+    const excludeSourceDomains = excludeSourceDomainsRaw
+        ? excludeSourceDomainsRaw.split(',').map((d) => d.trim()).filter(Boolean)
+        : undefined
+
     const filters = {
         status: req.query.status as any,
         fileCategory: req.query.fileCategory as string,
         fileExtension: req.query.fileExtension as string,
+        sourceDomain: req.query.sourceDomain as string,
+        excludeSourceDomains,
         startDate: req.query.startDate as string,
         endDate: req.query.endDate as string,
         search: req.query.search as string,

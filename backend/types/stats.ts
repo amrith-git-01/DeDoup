@@ -37,6 +37,8 @@ export interface DownloadHistoryFilter {
     status?: 'new' | 'duplicate';
     fileCategory?: string;
     fileExtension?: string;
+    sourceDomain?: string;
+    excludeSourceDomains?: string[];
     startDate?: string;
     endDate?: string;
     search?: string;

@@ -258,6 +258,15 @@ export async function getDownloadHistory(
             fileMatch['file.fileExtension'] = { $regex: new RegExp(`^${ext}$`, 'i') };
         }
 
+        if (filters.sourceDomain) {
+            const escaped = filters.sourceDomain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            fileMatch['file.sourceDomain'] = { $regex: new RegExp(`^${escaped}$`, 'i') };
+        }
+
+        if (filters.excludeSourceDomains?.length) {
+            fileMatch['file.sourceDomain'] = { $nin: filters.excludeSourceDomains };
+        }
+
         if (filters.search) {
             fileMatch['file.filename'] = { $regex: new RegExp(filters.search, 'i') };
         }
