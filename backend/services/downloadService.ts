@@ -13,7 +13,6 @@ import {
     HabitsData,
     FileMetrics,
     SourceStats,
-    SizeStats
 } from '../types/stats.js'
 
 // ============================================
@@ -787,60 +786,3 @@ export async function getSourceStats(userId: string): Promise<SourceStats> {
     }
 }
 
-
-// ============================================
-// Get Size Statistics
-// ============================================
-export async function getSizeStats(userId: string): Promise<SizeStats> {
-    try {
-        const [allEvents, allFiles] = await Promise.all([
-            DownloadEvent.find({ userId }).lean(),
-            File.find({ userId }).lean()
-        ]);
-
-        const filesWithSize = allFiles.filter(f => f.size && f.size > 0);
-        const totalSize = filesWithSize.reduce((sum, f) => sum + (f.size || 0), 0);
-        const averageFileSize = filesWithSize.length > 0 ? totalSize / filesWithSize.length : 0;
-
-        const largestFile = filesWithSize.length > 0
-            ? filesWithSize.reduce((max, f) => (f.size! > (max.size || 0) ? f : max))
-            : null;
-
-        const smallestFile = filesWithSize.length > 0
-            ? filesWithSize.reduce((min, f) => {
-                const minSize = min.size || Number.MAX_SAFE_INTEGER;
-                const fSize = f.size || Number.MAX_SAFE_INTEGER;
-                return fSize < minSize ? f : min;
-            })
-            : null;
-
-        const duplicateEvents = allEvents.filter(e => e.status === 'duplicate');
-        const duplicateSize = duplicateEvents.reduce((sum, e) => {
-            const file = allFiles.find(f => f._id.toString() === e.fileId.toString());
-            return sum + (file?.size || 0);
-        }, 0);
-
-        const totalStorageUsed = totalSize + duplicateSize;
-        const potentialSavingsPercent = totalStorageUsed > 0
-            ? (duplicateSize / totalStorageUsed) * 100
-            : 0;
-
-        return {
-            averageFileSize: Math.round(averageFileSize),
-            largestFile: largestFile ? {
-                filename: largestFile.filename,
-                size: largestFile.size!
-            } : null,
-            smallestFile: smallestFile ? {
-                filename: smallestFile.filename,
-                size: smallestFile.size!
-            } : null,
-            totalStorageUsed,
-            potentialSavingsPercent: Math.round(potentialSavingsPercent * 100) / 100
-        };
-    } catch (error: any) {
-        throw new AppError(`Failed to fetch size statistics: ${error.message}`, 500);
-    }
-}
-
-// getAdvancedStats removed

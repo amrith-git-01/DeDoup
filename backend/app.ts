@@ -8,6 +8,7 @@ import { notFoundHandler } from './middleware/notFoundHandler.js';
 import morgan from 'morgan';
 import authRoutes from './routes/authRoutes.js';
 import downRoutes from './routes/downloadRoutes.js';
+import browsingRoutes from './routes/browsingRoutes.js';
 
 dotenv.config();
 
@@ -32,12 +33,19 @@ app.use(
     })
 );
 
-const downloadsLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 200,
-    message: { success: false, message: 'Too many requests, please try again later.' },
-});
-app.use('/api/downloads', downloadsLimiter);
+// const downloadsLimiter = rateLimit({
+//     windowMs: 15 * 60 * 1000,
+//     limit: 200,
+//     message: { success: false, message: 'Too many requests, please try again later.' },
+// });
+// app.use('/api/downloads', downloadsLimiter);
+
+// const browsingLimiter = rateLimit({
+//     windowMs: 15 * 60 * 1000,
+//     limit: 300,
+//     message: { success: false, message: 'Too many requests, please try again later.' },
+// });
+// app.use('/api/browsing', browsingLimiter);
 
 app.use(express.json({ limit: '100kb' }));
 
@@ -60,6 +68,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/downloads', downRoutes);
+app.use('/api/browsing', browsingRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 

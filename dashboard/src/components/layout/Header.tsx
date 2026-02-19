@@ -1,15 +1,11 @@
-import { User, Menu } from 'lucide-react'
-
-interface HeaderProps {
-  username?: string
-  onMenuClick?: () => void
-}
+import { User, Menu } from 'lucide-react';
+import type { HeaderProps } from '../../types/layout';
 
 export function Header({ username, onMenuClick }: HeaderProps) {
   return (
-    <header className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl backdrop-saturate-150 border-b border-gray-200/60 shadow-sm h-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+        <div className="flex justify-between items-center h-full">
           <div className="flex items-center gap-4">
             {/* Mobile menu button */}
             <button
@@ -19,23 +15,23 @@ export function Header({ username, onMenuClick }: HeaderProps) {
             >
               <Menu className="w-6 h-6" />
             </button>
-            
+
             <h1 className="text-xl font-bold">
-  <span className="text-primary-600">De</span>
-  <span className="text-gray-900">Doup</span>
-</h1>
+              <span className="text-primary-600">De</span>
+              <span className="text-gray-900/90">Doup</span>
+            </h1>
           </div>
-          
+
           <div className="flex items-center gap-3">
-            <span className="hidden sm:block text-gray-700 font-medium">
+            <span className="hidden sm:block text-gray-700/90 font-medium">
               Hey, {username || 'User'}
             </span>
-            <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center cursor-pointer transition-all duration-200 ease-out hover:scale-110 active:scale-95 origin-center transform-gpu">
-  <User className="w-5 h-5 text-primary-600" />
-</div>
+            <div className="ui-hover-icon w-9 h-9 rounded-full bg-primary-100/80 backdrop-blur-sm flex items-center justify-center cursor-pointer border border-primary-200/30">
+              <User className="w-5 h-5 text-primary-600" />
+            </div>
           </div>
         </div>
       </div>
     </header>
-  )
+  );
 }

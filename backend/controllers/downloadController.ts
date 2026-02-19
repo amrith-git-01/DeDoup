@@ -10,7 +10,6 @@ import {
     getHabits,
     getFileMetrics,
     getSourceStats,
-    getSizeStats,
     trackDownload as trackDownloadService,
 } from '../services/downloadService.js'
 
@@ -104,18 +103,6 @@ export const getSourceStatsController = asyncHandler(async (req: Request, res: R
         success: true,
         data: stats,
     });
-});
-
-// ============================================
-// Get Size Stats
-// ============================================
-export const getSizeStatsController = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user?.userId;
-    if (!userId) {
-        throw new AppError('Unauthorized', 401);
-    }
-    const stats = await getSizeStats(userId);
-    res.json({ success: true, data: stats });
 });
 
 // ============================================
