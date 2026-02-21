@@ -131,7 +131,9 @@ export default function BrowsingPage() {
     <div className="p-8 space-y-8 bg-gray-50/50 min-h-screen">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Browsing</h1>
+          <h1 className="text-xl font-semibold text-gray-900 tracking-tight">
+            Browsing Statistics
+          </h1>
           <p className="text-sm text-gray-500 font-medium mt-0.5">
             Screen time and sites you spend time on.
           </p>
