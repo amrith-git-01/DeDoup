@@ -17,8 +17,8 @@ export function Header({ username, onMenuClick }: HeaderProps) {
             </button>
 
             <h1 className="text-xl font-bold">
-              <span className="text-primary-600">De</span>
-              <span className="text-gray-900/90">Doup</span>
+              <span className="text-primary-600">Surf</span>
+              <span className="text-gray-900/90">Bud</span>
             </h1>
           </div>
 
