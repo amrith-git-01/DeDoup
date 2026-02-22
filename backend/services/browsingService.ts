@@ -4,14 +4,13 @@ import { BrowsingVisit } from '../models/BrowsingVisit.js';
 import { BrowsingDomain } from '../models/BrowsingDomain.js';
 import type {
     BrowsingVisitPayload,
-    BrowsingSummary,
-    BrowsingTrends,
     BrowsingDailyActivity,
     BrowsingHabits,
     TopSiteItem,
     TodayByDomainItem,
-    BrowsingPeriodStats,
+    BrowsingOverview,
     RecentVisitItem,
+    VisitHistoryResponse,
 } from '../types/browsing.js'
 
 const toObjectId = (id: string) => new mongoose.Types.ObjectId(id);
@@ -68,37 +67,15 @@ export async function ingestVisits(userId: string, events: BrowsingVisitPayload[
         startTime: new Date(e.startTime),
         endTime: new Date(e.endTime),
         durationSeconds: e.durationSeconds,
+        clickLinkCount: e.clickLinkCount ?? 0,
+        clickButtonCount: e.clickButtonCount ?? 0,
+        clickOtherCount: e.clickOtherCount ?? 0,
+        scrollCount: e.scrollCount ?? 0,
+        keyEventCount: e.keyEventCount ?? 0,
     }))
 
     await BrowsingVisit.insertMany(visits)
     return { inserted: visits.length }
-}
-
-export async function getSummary(userId: string): Promise<BrowsingSummary> {
-    const now = new Date()
-    const today = startOfDay(now)
-    const weekStart = startOfWeek(now)
-    const monthStart = startOfMonth(now)
-    const uid = toObjectId(userId)
-    const [todayRes, weekRes, monthRes] = await Promise.all([
-        BrowsingVisit.aggregate([
-            { $match: { userId: uid, startTime: { $gte: today } } },
-            { $group: { _id: null, total: { $sum: '$durationSeconds' } } },
-        ]),
-        BrowsingVisit.aggregate([
-            { $match: { userId: uid, startTime: { $gte: weekStart } } },
-            { $group: { _id: null, total: { $sum: '$durationSeconds' } } },
-        ]),
-        BrowsingVisit.aggregate([
-            { $match: { userId: uid, startTime: { $gte: monthStart } } },
-            { $group: { _id: null, total: { $sum: '$durationSeconds' } } },
-        ]),
-    ])
-    return {
-        totalSecondsToday: todayRes[0]?.total ?? 0,
-        totalSecondsWeek: weekRes[0]?.total ?? 0,
-        totalSecondsMonth: monthRes[0]?.total ?? 0,
-    }
 }
 
 export async function getTodayByDomain(
@@ -158,60 +135,61 @@ export async function getTodayByDomain(
 
 }
 
-export async function getTrends(userId: string): Promise<BrowsingTrends> {
+/** Single-call overview for Screen Time Overview (today, yesterday, week, month + comparisons) */
+export async function getScreenTimeOverview(userId: string): Promise<BrowsingOverview> {
     const now = new Date()
-    const today = startOfDay(now)
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
+    const todayStart = startOfDay(now)
+    const yesterdayStart = new Date(todayStart)
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1)
+    const yesterdayEnd = new Date(todayStart)
+    yesterdayEnd.setMilliseconds(-1)
     const weekStart = startOfWeek(now)
-    const lastWeekStart = new Date(weekStart)
-    lastWeekStart.setDate(lastWeekStart.getDate() - 7)
-    const endLastWeek = new Date(weekStart)
-    endLastWeek.setMilliseconds(-1)
+    const prevWeekStart = new Date(weekStart)
+    prevWeekStart.setDate(prevWeekStart.getDate() - 7)
+    const prevWeekEnd = new Date(weekStart)
+    prevWeekEnd.setMilliseconds(-1)
     const monthStart = startOfMonth(now)
-    const lastMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1)
-    const endLastMonth = new Date(monthStart)
-    endLastMonth.setMilliseconds(-1)
+    const prevMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1)
+    const prevMonthEnd = new Date(monthStart)
+    prevMonthEnd.setMilliseconds(-1)
     const uid = toObjectId(userId)
 
-    const result = await BrowsingVisit.aggregate([
-        { $match: { userId: uid } },
-        {
-            $facet: {
-                today: [
-                    { $match: { startTime: { $gte: today } } },
-                    { $group: { _id: null, total: { $sum: '$durationSeconds' } } },
-                ],
-                yesterday: [
-                    { $match: { startTime: { $gte: yesterday, $lt: today } } },
-                    { $group: { _id: null, total: { $sum: '$durationSeconds' } } },
-                ],
-                week: [
-                    { $match: { startTime: { $gte: weekStart } } },
-                    { $group: { _id: null, total: { $sum: '$durationSeconds' } } },
-                ],
-                lastWeek: [
-                    { $match: { startTime: { $gte: lastWeekStart, $lte: endLastWeek } } },
-                    { $group: { _id: null, total: { $sum: '$durationSeconds' } } },
-                ],
-                month: [
-                    { $match: { startTime: { $gte: monthStart } } },
-                    { $group: { _id: null, total: { $sum: '$durationSeconds' } } },
-                ],
-                lastMonth: [
-                    { $match: { startTime: { $gte: lastMonthStart, $lte: endLastMonth } } },
-                    { $group: { _id: null, total: { $sum: '$durationSeconds' } } },
-                ],
+    const runPeriod = async (start: Date, end: Date) => {
+        const rows = await BrowsingVisit.aggregate([
+            {
+                $match: {
+                    userId: uid,
+                    startTime: { $gte: start, $lte: end },
+                },
             },
-        },
-    ])
-    const d = result[0]
-    const get = (key: string) => d[key][0]?.total ?? 0
-    return {
-        today: { count: get('today'), change: get('today') - get('yesterday') },
-        week: { count: get('week'), change: get('week') - get('lastWeek') },
-        month: { count: get('month'), change: get('month') - get('lastMonth') },
+            {
+                $group: {
+                    _id: null,
+                    totalSeconds: { $sum: '$durationSeconds' },
+                    visitCount: { $sum: 1 },
+                    domainIds: { $addToSet: '$domainId' },
+                },
+            },
+            { $project: { totalSeconds: 1, visitCount: 1, siteCount: { $size: '$domainIds' } } },
+        ])
+        const r = rows[0]
+        return {
+            totalSeconds: r?.totalSeconds ?? 0,
+            visitCount: r?.visitCount ?? 0,
+            siteCount: r?.siteCount ?? 0,
+        }
     }
+
+    const [today, yesterday, week, prevWeek, month, prevMonth] = await Promise.all([
+        runPeriod(todayStart, now),
+        runPeriod(yesterdayStart, yesterdayEnd),
+        runPeriod(weekStart, now),
+        runPeriod(prevWeekStart, prevWeekEnd),
+        runPeriod(monthStart, now),
+        runPeriod(prevMonthStart, prevMonthEnd),
+    ])
+
+    return { today, yesterday, week, prevWeek, month, prevMonth }
 }
 
 export async function getDailyActivity(userId: string): Promise<BrowsingDailyActivity[]> {
@@ -328,55 +306,6 @@ export async function getTopSites(userId: string): Promise<TopSiteItem[]> {
     }))
 }
 
-export async function getPeriodStats(userId: string): Promise<BrowsingPeriodStats> {
-    const now = new Date()
-    const weekStart = startOfWeek(now)
-    const prevWeekStart = new Date(weekStart)
-    prevWeekStart.setDate(prevWeekStart.getDate() - 7)
-    const prevWeekEnd = new Date(weekStart)
-    prevWeekEnd.setMilliseconds(-1)
-    const monthStart = startOfMonth(now)
-    const prevMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1)
-    const prevMonthEnd = new Date(monthStart)
-    prevMonthEnd.setMilliseconds(-1)
-    const uid = toObjectId(userId)
-
-    const runPeriod = async (start: Date, end: Date) => {
-        const rows = await BrowsingVisit.aggregate([
-            {
-                $match: {
-                    userId: uid,
-                    startTime: { $gte: start, $lte: end },
-                },
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalSeconds: { $sum: '$durationSeconds' },
-                    visitCount: { $sum: 1 },
-                    domainIds: { $addToSet: '$domainId' },
-                },
-            },
-            { $project: { totalSeconds: 1, visitCount: 1, siteCount: { $size: '$domainIds' } } },
-        ])
-        const r = rows[0]
-        return {
-            totalSeconds: r?.totalSeconds ?? 0,
-            visitCount: r?.visitCount ?? 0,
-            siteCount: r?.siteCount ?? 0,
-        }
-    }
-
-    const [week, prevWeek, month, prevMonth] = await Promise.all([
-        runPeriod(weekStart, now),
-        runPeriod(prevWeekStart, prevWeekEnd),
-        runPeriod(monthStart, now),
-        runPeriod(prevMonthStart, prevMonthEnd),
-    ])
-
-    return { week, prevWeek, month, prevMonth }
-}
-
 export async function getRecentVisits(
     userId: string,
     limit = 10
@@ -400,6 +329,11 @@ export async function getRecentVisits(
                 domain: '$domainDoc.domain',
                 durationSeconds: 1,
                 endTime: 1,
+                clickLinkCount: 1,
+                clickButtonCount: 1,
+                clickOtherCount: 1,
+                scrollCount: 1,
+                keyEventCount: 1,
                 _id: 0,
             },
         },
@@ -408,5 +342,163 @@ export async function getRecentVisits(
         domain: r.domain ?? '',
         durationSeconds: r.durationSeconds,
         endTime: r.endTime instanceof Date ? r.endTime.toISOString() : String(r.endTime),
+        ...(r.clickLinkCount != null && { clickLinkCount: r.clickLinkCount }),
+        ...(r.clickButtonCount != null && { clickButtonCount: r.clickButtonCount }),
+        ...(r.clickOtherCount != null && { clickOtherCount: r.clickOtherCount }),
+        ...(r.scrollCount != null && { scrollCount: r.scrollCount }),
+        ...(r.keyEventCount != null && { keyEventCount: r.keyEventCount }),
     }))
+}
+
+export interface VisitHistoryParams {
+    domain?: string
+    startDate?: string
+    endDate?: string
+    excludeDomains?: string[]
+    page?: number
+    limit?: number
+}
+
+export async function getVisitHistory(
+    userId: string,
+    params: VisitHistoryParams = {}
+): Promise<VisitHistoryResponse> {
+    const { domain, startDate, endDate, excludeDomains = [], page = 1, limit = 20 } = params
+    const uid = toObjectId(userId)
+    const skip = Math.max(0, (Math.max(1, page) - 1) * Math.min(50, Math.max(1, limit)))
+    const limitNum = Math.min(50, Math.max(1, limit))
+
+    const matchBase: Record<string, unknown> = { userId: uid }
+    if (startDate || endDate) {
+        const start = startDate ? new Date(startDate) : new Date(0)
+        const end = endDate ? new Date(endDate) : new Date(8640000000000000)
+        matchBase.startTime = { $gte: start, $lte: end }
+    }
+
+    const pipeline: mongoose.PipelineStage[] = [
+        { $match: matchBase },
+        {
+            $lookup: {
+                from: 'browsingdomains',
+                localField: 'domainId',
+                foreignField: '_id',
+                as: 'domainDoc',
+            },
+        },
+        { $unwind: '$domainDoc' },
+        { $addFields: { domain: '$domainDoc.domain' } },
+    ]
+
+    const matchAfterLookup: Record<string, unknown> = {}
+    if (domain) matchAfterLookup.domain = domain
+    if (excludeDomains.length > 0) matchAfterLookup.domain = { $nin: excludeDomains }
+    if (Object.keys(matchAfterLookup).length > 0) {
+        pipeline.push({ $match: matchAfterLookup })
+    }
+
+    pipeline.push(
+        { $sort: { endTime: -1 } },
+        {
+            $facet: {
+                count: [{ $count: 'total' }],
+                items: [
+                    { $skip: skip },
+                    { $limit: limitNum },
+                    {
+                        $lookup: {
+                            from: 'downloadevents',
+                            let: { vStart: '$startTime', vEnd: '$endTime', vUserId: '$userId' },
+                            pipeline: [
+                                {
+                                    $match: {
+                                        $expr: {
+                                            $and: [
+                                                { $eq: ['$userId', '$$vUserId'] },
+                                                { $gte: ['$downloadedAt', '$$vStart'] },
+                                                { $lte: ['$downloadedAt', '$$vEnd'] },
+                                            ],
+                                        },
+                                    },
+                                },
+                                { $sort: { downloadedAt: -1 } },
+                                {
+                                    $lookup: {
+                                        from: 'files',
+                                        localField: 'fileId',
+                                        foreignField: '_id',
+                                        as: 'fileDoc',
+                                    },
+                                },
+                                { $unwind: { path: '$fileDoc', preserveNullAndEmptyArrays: true } },
+                                {
+                                    $project: {
+                                        _id: { $toString: '$_id' },
+                                        status: 1,
+                                        downloadedAt: 1,
+                                        filename: '$fileDoc.filename',
+                                        size: '$fileDoc.size',
+                                        fileExtension: '$fileDoc.fileExtension',
+                                        fileCategory: '$fileDoc.fileCategory',
+                                    },
+                                },
+                            ],
+                            as: 'downloads',
+                        },
+                    },
+                    {
+                        $project: {
+                            domain: 1,
+                            durationSeconds: 1,
+                            endTime: 1,
+                            clickLinkCount: 1,
+                            clickButtonCount: 1,
+                            clickOtherCount: 1,
+                            scrollCount: 1,
+                            keyEventCount: 1,
+                            downloads: 1,
+                            _id: 0,
+                        },
+                    },
+                ],
+            },
+        }
+    )
+
+    const result = await BrowsingVisit.aggregate<{
+        count: { total: number }[]
+        items: {
+            domain: string
+            durationSeconds: number
+            endTime: Date
+            clickLinkCount?: number
+            clickButtonCount?: number
+            clickOtherCount?: number
+            scrollCount?: number
+            keyEventCount?: number
+            downloads?: { _id: string; status: string; downloadedAt: Date; filename: string; size: number; fileExtension?: string; fileCategory?: string }[]
+        }[]
+
+    }>(pipeline)
+    const first = result[0]
+    const total = first?.count?.[0]?.total ?? 0
+    const items = (first?.items ?? []).map((r) => ({
+        domain: r.domain ?? '',
+        durationSeconds: r.durationSeconds,
+        endTime: r.endTime instanceof Date ? r.endTime.toISOString() : String(r.endTime),
+        ...(r.clickLinkCount != null && { clickLinkCount: r.clickLinkCount }),
+        ...(r.clickButtonCount != null && { clickButtonCount: r.clickButtonCount }),
+        ...(r.clickOtherCount != null && { clickOtherCount: r.clickOtherCount }),
+        ...(r.scrollCount != null && { scrollCount: r.scrollCount }),
+        ...(r.keyEventCount != null && { keyEventCount: r.keyEventCount }),
+        downloads: (r.downloads ?? []).map((d: any) => ({
+            _id: d._id,
+            status: d.status,
+            downloadedAt: d.downloadedAt instanceof Date ? d.downloadedAt.toISOString() : String(d.downloadedAt),
+            filename: d.filename ?? '',
+            size: d.size ?? 0,
+            ...(d.fileExtension && { fileExtension: d.fileExtension }),
+            ...(d.fileCategory && { fileCategory: d.fileCategory }),
+        })),
+    }))
+    return { items, total }
 }
