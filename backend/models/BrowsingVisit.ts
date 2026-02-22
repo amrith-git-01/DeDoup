@@ -6,6 +6,11 @@ export interface IBrowsingVisit extends Document {
     startTime: Date;
     endTime: Date;
     durationSeconds: number;
+    clickLinkCount?: number;
+    clickButtonCount?: number;
+    clickOtherCount?: number;
+    scrollCount?: number;
+    keyEventCount?: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -37,7 +42,12 @@ const schema = new Schema<IBrowsingVisit>({
         type: Number,
         required: [true, 'Duration seconds is required'],
         index: true
-    }
+    },
+    clickLinkCount: { type: Number, default: 0 },
+    clickButtonCount: { type: Number, default: 0 },
+    clickOtherCount: { type: Number, default: 0 },
+    scrollCount: { type: Number, default: 0 },
+    keyEventCount: { type: Number, default: 0 }
 }, {
     timestamps: true
 })

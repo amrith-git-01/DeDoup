@@ -1,6 +1,6 @@
-# DeDoup
+# SurfBud
 
-DeDoup is a web activity and download tracking application. It helps users monitor their downloads (including duplicate detection), view download and browsing analytics in a central dashboard, and track screen time by domain via a browser extension. Data is collected by the extension, stored and aggregated by the backend, and visualized in the dashboard.
+SurfBud is a web activity and download tracking application. It helps users monitor their downloads (including duplicate detection), view download and browsing analytics in a central dashboard, and track screen time by domain via a browser extension. Data is collected by the extension, stored and aggregated by the backend, and visualized in the dashboard.
 
 ---
 
@@ -72,11 +72,11 @@ The extension does not display browsing metrics in the UI; browsing data is sent
 
 The repository contains three main applications:
 
-| Folder      | Role                                                                 |
-|------------|----------------------------------------------------------------------|
-| **backend**  | Node/Express API, MongoDB, auth and business logic for downloads and browsing. |
-| **dashboard**| React web app for analytics, download and browsing views, and auth.  |
-| **extension**| Chrome extension (side panel + service worker) for tracking and quick stats. |
+| Folder        | Role                                                                           |
+| ------------- | ------------------------------------------------------------------------------ |
+| **backend**   | Node/Express API, MongoDB, auth and business logic for downloads and browsing. |
+| **dashboard** | React web app for analytics, download and browsing views, and auth.            |
+| **extension** | Chrome extension (side panel + service worker) for tracking and quick stats.   |
 
 Each has its own `package.json` and is run and built independently.
 
