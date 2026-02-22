@@ -5,6 +5,11 @@ export interface BrowsingVisitPayload {
     startTime: string
     endTime: string
     durationSeconds: number
+    clickLinkCount?: number
+    clickButtonCount?: number
+    clickOtherCount?: number
+    scrollCount?: number
+    keyEventCount?: number
 }
 
 export interface BrowsingSummary {
@@ -68,8 +73,40 @@ export interface BrowsingPeriodStats {
     prevMonth: BrowsingPeriodMetric
 }
 
+/** Single-call overview for Screen Time Overview section (today, yesterday, week, month + comparisons) */
+export interface BrowsingOverview {
+    today: BrowsingPeriodMetric
+    yesterday: BrowsingPeriodMetric
+    week: BrowsingPeriodMetric
+    prevWeek: BrowsingPeriodMetric
+    month: BrowsingPeriodMetric
+    prevMonth: BrowsingPeriodMetric
+}
+
 export interface RecentVisitItem {
     domain: string
     durationSeconds: number
     endTime: string
+    clickLinkCount?: number
+    clickButtonCount?: number
+    clickOtherCount?: number
+    scrollCount?: number
+    keyEventCount?: number
+    downloads?: VisitDownloadItem[]
+}
+
+/** Paginated visit history for details drawer */
+export interface VisitHistoryResponse {
+    items: RecentVisitItem[]
+    total: number
+}
+
+export interface VisitDownloadItem {
+    _id: string
+    status: 'new' | 'duplicate'
+    downloadedAt: string
+    filename: string
+    size: number
+    fileExtension?: string
+    fileCategory?: string
 }
