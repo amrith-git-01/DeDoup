@@ -11,6 +11,7 @@ import {
     getRecentVisits,
     getVisitHistory,
 } from '../services/browsingService.js'
+import { broadcast } from '../services/sseService.js'
 
 export const ingestEventsController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.userId
@@ -18,6 +19,7 @@ export const ingestEventsController = asyncHandler(async (req: Request, res: Res
     const body = req.body as { events?: Array<{ domain: string; startTime: string; endTime: string; durationSeconds: number }> }
     const events = body.events ?? []
     const result = await ingestVisits(userId, events)
+    broadcast('browsing', userId);
     res.json({ success: true, data: result })
 })
 
@@ -74,8 +76,8 @@ export const getVisitHistoryController = asyncHandler(async (req: Request, res: 
     const excludeDomains = Array.isArray(excludeParam)
         ? excludeParam.filter((x): x is string => typeof x === 'string')
         : typeof excludeParam === 'string'
-          ? excludeParam.split(',').map((s) => s.trim()).filter(Boolean)
-          : []
+            ? excludeParam.split(',').map((s) => s.trim()).filter(Boolean)
+            : []
     const page = Math.max(1, Number(req.query.page) || 1)
     const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20))
     const data = await getVisitHistory(userId, {

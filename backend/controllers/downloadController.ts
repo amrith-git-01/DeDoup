@@ -12,6 +12,7 @@ import {
     getSourceStats,
     trackDownload as trackDownloadService,
 } from '../services/downloadService.js'
+import { broadcast } from '../services/sseService.js'
 
 // ============================================
 // Get Summary Metrics
@@ -131,6 +132,8 @@ export const trackDownloadController = asyncHandler(async (req: Request, res: Re
         mimeType,
         duration,
     })
+
+    broadcast('downloads', userId);
 
     res.json({
         success: true,
