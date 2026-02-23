@@ -9,6 +9,7 @@ import morgan from 'morgan';
 import authRoutes from './routes/authRoutes.js';
 import downRoutes from './routes/downloadRoutes.js';
 import browsingRoutes from './routes/browsingRoutes.js';
+import sseRoutes from './routes/sseRoutes.js';
 
 dotenv.config();
 
@@ -69,6 +70,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/downloads', downRoutes);
 app.use('/api/browsing', browsingRoutes);
+app.use('/api/sse', sseRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
