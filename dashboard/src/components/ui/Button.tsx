@@ -12,7 +12,7 @@ export function Button({
 }: ButtonProps) {
   // Outer button keeps layout stable
   const base =
-    'relative inline-flex items-center justify-center rounded-xl focus:outline-none ' +
+    'relative inline-flex items-center justify-center rounded-xl focus:outline-none cursor-pointer ' +
     'disabled:opacity-50 disabled:cursor-not-allowed';
 
   const sizes = {
