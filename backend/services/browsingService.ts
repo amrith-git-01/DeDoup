@@ -21,6 +21,15 @@ function startOfDay(d: Date) {
     return x;
 }
 
+/** Server timezone offset for MongoDB $dateToString (e.g. "+05:30") so daily buckets match overview/drawer. */
+function getTimezoneOffsetString(): string {
+    const offsetMin = -new Date().getTimezoneOffset();
+    const sign = offsetMin >= 0 ? '+' : '-';
+    const hours = Math.floor(Math.abs(offsetMin) / 60);
+    const mins = Math.abs(offsetMin) % 60;
+    return `${sign}${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
 function startOfWeek(d: Date) {
     const x = new Date(d);
     const day = x.getDay() || 7;
@@ -198,11 +207,12 @@ export async function getDailyActivity(userId: string): Promise<BrowsingDailyAct
     start.setDate(start.getDate() - 30)
     start.setHours(0, 0, 0, 0)
     const uid = toObjectId(userId)
+    const tz = getTimezoneOffsetString();
     const rows = await BrowsingVisit.aggregate([
         { $match: { userId: uid, startTime: { $gte: start } } },
         {
             $group: {
-                _id: { $dateToString: { format: '%Y-%m-%d', date: '$startTime' } },
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$startTime', timezone: tz } },
                 totalSeconds: { $sum: '$durationSeconds' },
                 visitCount: { $sum: 1 },
                 domainIds: { $addToSet: '$domainId' },
@@ -324,9 +334,51 @@ export async function getRecentVisits(
             },
         },
         { $unwind: '$domainDoc' },
+        { $addFields: { domain: '$domainDoc.domain' } },
+        {
+            $lookup: {
+                from: 'downloadevents',
+                let: { vStart: '$startTime', vEnd: '$endTime', vUserId: '$userId' },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $eq: ['$userId', '$$vUserId'] },
+                                    { $gte: ['$downloadedAt', '$$vStart'] },
+                                    { $lte: ['$downloadedAt', '$$vEnd'] },
+                                ],
+                            },
+                        },
+                    },
+                    { $sort: { downloadedAt: -1 } },
+                    {
+                        $lookup: {
+                            from: 'files',
+                            localField: 'fileId',
+                            foreignField: '_id',
+                            as: 'fileDoc',
+                        },
+                    },
+                    { $unwind: { path: '$fileDoc', preserveNullAndEmptyArrays: true } },
+                    {
+                        $project: {
+                            _id: { $toString: '$_id' },
+                            status: 1,
+                            downloadedAt: 1,
+                            filename: '$fileDoc.filename',
+                            size: '$fileDoc.size',
+                            fileExtension: '$fileDoc.fileExtension',
+                            fileCategory: '$fileDoc.fileCategory',
+                        },
+                    },
+                ],
+                as: 'downloads',
+            },
+        },
         {
             $project: {
-                domain: '$domainDoc.domain',
+                domain: 1,
                 durationSeconds: 1,
                 endTime: 1,
                 clickLinkCount: 1,
@@ -334,6 +386,7 @@ export async function getRecentVisits(
                 clickOtherCount: 1,
                 scrollCount: 1,
                 keyEventCount: 1,
+                downloads: 1,
                 _id: 0,
             },
         },
@@ -347,6 +400,15 @@ export async function getRecentVisits(
         ...(r.clickOtherCount != null && { clickOtherCount: r.clickOtherCount }),
         ...(r.scrollCount != null && { scrollCount: r.scrollCount }),
         ...(r.keyEventCount != null && { keyEventCount: r.keyEventCount }),
+        downloads: (r.downloads ?? []).map((d: any) => ({
+            _id: d._id,
+            status: d.status,
+            downloadedAt: d.downloadedAt instanceof Date ? d.downloadedAt.toISOString() : String(d.downloadedAt),
+            filename: d.filename ?? '',
+            size: d.size ?? 0,
+            ...(d.fileExtension && { fileExtension: d.fileExtension }),
+            ...(d.fileCategory && { fileCategory: d.fileCategory }),
+        })),
     }))
 }
 
