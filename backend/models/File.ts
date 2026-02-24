@@ -5,6 +5,8 @@ export interface IFile extends Document {
     hash: string
     filename: string
     url: string
+    /** Full path where the file was saved on disk (stored on first download only). */
+    savedPath?: string
     size?: number
     fileExtension?: string
     fileCategory?: string
@@ -34,6 +36,10 @@ const fileSchema = new Schema<IFile>({
     url: {
         type: String,
         required: [true, 'URL is required']
+    },
+    savedPath: {
+        type: String,
+        default: undefined
     },
     size: {
         type: Number

@@ -37,6 +37,7 @@ export async function trackDownload(
         filename: string;
         url: string;
         hash: string;
+        savedPath?: string;
         size?: number;
         fileCategory?: string;
         fileExtension?: string;
@@ -55,7 +56,7 @@ export async function trackDownload(
     const status: 'new' | 'duplicate' = file ? 'duplicate' : 'new';
 
     if (!file) {
-        file = await File.create({
+        const fileData: Record<string, unknown> = {
             userId,
             filename: body.filename,
             url: body.url,
@@ -65,7 +66,11 @@ export async function trackDownload(
             fileExtension: body.fileExtension,
             mimeType: body.mimeType,
             sourceDomain,
-        });
+        };
+        if (typeof body.savedPath === 'string' && body.savedPath.trim()) {
+            fileData.savedPath = body.savedPath.trim();
+        }
+        file = await File.create(fileData);
     }
 
     const event = await DownloadEvent.create({
@@ -292,6 +297,7 @@ export async function getDownloadHistory(
                             filename: '$file.filename',
                             url: '$file.url',
                             hash: '$file.hash',
+                            savedPath: '$file.savedPath',
                             size: '$file.size',
                             fileExtension: '$file.fileExtension',
                             fileCategory: '$file.fileCategory',
@@ -658,6 +664,7 @@ export async function getRecentlyBlocked(
                 filename: file.filename,
                 url: file.url,
                 hash: file.hash,
+                savedPath: file.savedPath,
                 size: file.size,
                 fileExtension: file.fileExtension,
                 fileCategory: file.fileCategory,
@@ -701,6 +708,7 @@ export async function getDuplicateDownloads(
                 filename: file.filename,
                 url: file.url,
                 hash: file.hash,
+                savedPath: file.savedPath,
                 size: file.size,
                 fileExtension: file.fileExtension,
                 fileCategory: file.fileCategory,

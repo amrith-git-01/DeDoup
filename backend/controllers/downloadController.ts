@@ -116,7 +116,7 @@ export const trackDownloadController = asyncHandler(async (req: Request, res: Re
         throw new AppError('Unauthorized', 401)
     }
 
-    const { filename, url, hash, size, fileCategory, fileExtension, mimeType, duration } = req.body
+    const { filename, url, hash, size, fileCategory, fileExtension, mimeType, duration, savedPath } = req.body
 
     if (!filename || !url || !hash) {
         throw new AppError('Missing required fields', 400)
@@ -126,6 +126,7 @@ export const trackDownloadController = asyncHandler(async (req: Request, res: Re
         filename,
         url,
         hash,
+        savedPath,
         size,
         fileCategory,
         fileExtension,
