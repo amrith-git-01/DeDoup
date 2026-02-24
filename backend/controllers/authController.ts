@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import { signupSchemaZod, loginSchemaZod } from '../models/User.js';
-import { signup, login, getUserById } from '../services/authService.js';
+import { signupSchemaZod, loginSchemaZod, updateUsernameSchemaZod, updatePasswordSchemaZod } from '../models/User.js';
+import { signup, login, getUserById, updateUsername, updatePassword } from '../services/authService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { AppError } from '../utils/AppError.js';
 
@@ -46,4 +46,31 @@ export const getMeController = asyncHandler(async (req: Request, res: Response) 
         message: 'User fetched successfully',
         data: user
     });
-})
+});
+
+export const updateUsernameController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.userId;
+    if (!userId) {
+        throw new AppError('Unauthorized', 401);
+    }
+    const validated = updateUsernameSchemaZod.parse(req.body);
+    const user = await updateUsername(userId, validated.username);
+    res.status(200).json({
+        success: true,
+        message: 'Username updated successfully',
+        data: user
+    });
+});
+
+export const updatePasswordController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.userId;
+    if (!userId) {
+        throw new AppError('Unauthorized', 401);
+    }
+    const validated = updatePasswordSchemaZod.parse(req.body);
+    await updatePassword(userId, validated.currentPassword, validated.newPassword);
+    res.status(200).json({
+        success: true,
+        message: 'Password updated successfully'
+    });
+});

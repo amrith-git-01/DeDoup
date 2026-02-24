@@ -18,6 +18,15 @@ export const loginSchemaZod = z.object({
     password: z.string().min(8, "Password must be at least 8 characters long"),
 })
 
+export const updateUsernameSchemaZod = z.object({
+    username: z.string().min(5, "Username must be at least 5 characters long"),
+});
+
+export const updatePasswordSchemaZod = z.object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(8, "New password must be at least 8 characters long"),
+});
+
 export type UserInput = z.infer<typeof signupSchemaZod>;
 
 // ============================================
@@ -27,6 +36,7 @@ export interface IUser extends Document {
     email: string;
     password: string;
     username: string;
+    profileImageUrl: string | null;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -53,7 +63,11 @@ const userSchema = new Schema<IUser>({
         trim: true,
         unique: true,
         index: true
-    }
+    },
+    profileImageUrl: {
+        type: String,
+        default: null,
+    },
 }, {
     timestamps: true
 })

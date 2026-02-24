@@ -112,6 +112,42 @@ export async function getUserById(userId: string) {
     return {
         id: user._id.toString(),
         email: user.email,
-        username: user.username
+        username: user.username,
+        profileImageUrl: user.profileImageUrl
     }
+}
+
+export async function updateUsername(userId: string, username: string) {
+    const existing = await User.findOne({ username, _id: { $ne: userId } });
+    if (existing) {
+        throw new AppError('Username is already in use', 400);
+    }
+    const user = await User.findByIdAndUpdate(
+        userId,
+        { username: username.trim() },
+        { new: true, runValidators: true }
+    );
+    if (!user) {
+        throw new AppError('User not found', 404);
+    }
+    return {
+        id: user._id.toString(),
+        email: user.email,
+        username: user.username,
+        profileImageUrl: user.profileImageUrl
+    };
+}
+
+export async function updatePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await User.findById(userId).select('+password');
+    if (!user) {
+        throw new AppError('User not found', 404);
+    }
+    const isCurrentValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentValid) {
+        throw new AppError('Current password is incorrect', 400);
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await User.findByIdAndUpdate(userId, { password: hashedPassword }, { runValidators: true });
+    return { success: true };
 }
