@@ -66,6 +66,7 @@ export interface DownloadHistoryItem {
     filename: string;
     url: string;
     hash: string;
+    savedPath?: string;
     size: number;
     fileExtension?: string;
     fileCategory?: string;
