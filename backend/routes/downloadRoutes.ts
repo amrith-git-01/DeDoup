@@ -10,6 +10,8 @@ import {
     getHabitsController,
     getFileMetricsController,
     getSourceStatsController,
+    getPreferencesController,
+    updatePreferencesController,
 } from '../controllers/downloadController.js'
 
 const router = express.Router()
@@ -29,5 +31,9 @@ router.get('/metrics/activity', getActivityController)
 router.get('/metrics/habits', getHabitsController)
 router.get('/metrics/files', getFileMetricsController)
 router.get('/metrics/sources', getSourceStatsController)
+
+// Preferences
+router.get('/preferences', getPreferencesController)
+router.put('/preferences', updatePreferencesController)
 
 export default router

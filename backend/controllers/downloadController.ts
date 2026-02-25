@@ -12,7 +12,9 @@ import {
     getSourceStats,
     trackDownload as trackDownloadService,
 } from '../services/downloadService.js'
+import { getDownloadPreferences, updateDownloadPreferences } from '../services/downloadPreferenceService.js'
 import { broadcast } from '../services/sseService.js'
+import { updateDownloadPreferencesSchemaZod } from '../validators/downloadPreference.js'
 
 // ============================================
 // Get Summary Metrics
@@ -207,3 +209,42 @@ export const getDuplicatesController = asyncHandler(async (req: Request, res: Re
         data: duplicates
     })
 })
+
+// ============================================
+// Get Download Preferences
+// ============================================
+
+export const getPreferencesController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.userId;
+    if (!userId) {
+        throw new AppError('Unauthorized', 401);
+    }
+    const prefs = await getDownloadPreferences(userId);
+    res.json({ success: true, data: prefs });
+});
+
+// ============================================
+// Update Download Preferences
+// ============================================
+
+export const updatePreferencesController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.userId;
+    if (!userId) {
+        throw new AppError('Unauthorized', 401);
+    }
+    const parsed = updateDownloadPreferencesSchemaZod.safeParse(req.body);
+    if (!parsed.success) {
+        throw new AppError(parsed.error.message, 400);
+    }
+    const raw = parsed.data;
+    const body: Parameters<typeof updateDownloadPreferences>[1] = {
+        trackingEnabled: raw.trackingEnabled,
+        domainBlocklist: raw.domainBlocklist,
+        pauseForSeconds: raw.pauseForSeconds,
+    };
+    if (raw.pausedUntil !== undefined) {
+        body.pausedUntil = raw.pausedUntil == null ? null : new Date(raw.pausedUntil as string | Date);
+    }
+    const prefs = await updateDownloadPreferences(userId, body);
+    res.json({ success: true, data: prefs });
+});
