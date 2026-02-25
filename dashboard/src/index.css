@@ -42,8 +42,14 @@
     @apply border-gray-200;
   }
 
+  html,
   body {
-    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans;
   }
 
   /* Use Outfit for large headings */
