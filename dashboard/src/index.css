@@ -245,6 +245,11 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
+/* Details drawer: no heavy hover shadow to avoid compositor-layer text softness */
+.details-drawer-content .ui-hover-card:hover {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
 /* List rows / clickable rows: background only */
 .ui-hover-row {
   transition: background-color 0.2s ease-out;
