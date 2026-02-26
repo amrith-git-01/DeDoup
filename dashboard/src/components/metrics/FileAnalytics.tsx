@@ -7,9 +7,9 @@ import type { ViewMode } from '../../types/ui';
 import type { MetricItem, MetricMode } from '../../types/metrics';
 
 const CATEGORY_COLORS: Record<string, string> = {
-  document: '#3b82f6',
+  document: 'var(--color-primary-500)',
   image: '#10b981',
-  video: '#8b5cf6',
+  video: 'var(--color-accent-500)',
   audio: '#ec4899',
   archive: '#f97316',
   code: '#06b6d4',
@@ -18,7 +18,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const EXTENSION_COLORS = [
-  '#3b82f6', '#8b5cf6', '#10b981', '#f97316', '#ec4899',
+  'var(--color-primary-500)', 'var(--color-accent-500)', '#10b981', '#f97316', '#ec4899',
   '#06b6d4', '#f59e0b', '#84cc16', '#14b8a6', '#6366f1',
 ];
 

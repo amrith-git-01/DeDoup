@@ -86,10 +86,10 @@ function TopSitesChart({ topSites }: TopSitesChartProps) {
             />
             <Bar
               dataKey="totalSeconds"
-              fill="#93c5fd"
+              fill="var(--color-primary-500)"
               radius={[0, 4, 4, 0]}
               barSize={18}
-              activeBar={{ fill: '#60a5fa' }}
+              activeBar={{ fill: 'var(--color-primary-600)' }}
             />
           </BarChart>
         </ResponsiveContainer>

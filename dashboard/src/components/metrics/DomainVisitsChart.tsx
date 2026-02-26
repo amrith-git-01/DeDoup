@@ -73,10 +73,10 @@ function DomainVisitsChart({ data }: DomainVisitsChartProps) {
             />
             <Bar
               dataKey="visitCount"
-              fill="#3b82f6"
+              fill="var(--color-primary-500)"
               radius={[4, 4, 0, 0]}
               barSize={28}
-              activeBar={{ fill: '#2563eb' }}
+              activeBar={{ fill: 'var(--color-primary-600)' }}
             />
           </BarChart>
         </ResponsiveContainer>

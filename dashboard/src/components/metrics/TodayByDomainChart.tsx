@@ -4,8 +4,8 @@ import { formatDuration } from '../../utils/format';
 import type { TodayByDomainItem } from '../../types/browsing';
 
 const PIE_COLORS = [
-  '#3b82f6',
-  '#8b5cf6',
+  'var(--color-primary-500)',
+  'var(--color-accent-500)',
   '#10b981',
   '#f97316',
   '#ec4899',
