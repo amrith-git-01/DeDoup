@@ -22,6 +22,13 @@ const formatDateLabel = (dateStr: string) => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
+const toLocalDateString = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 const ActivityChart = ({ dailyActivity, onDateClick }: ActivityChartProps) => {
   const [period, setPeriod] = useState<Period>(7);
 
@@ -47,7 +54,7 @@ const ActivityChart = ({ dailyActivity, onDateClick }: ActivityChartProps) => {
     for (let i = period - 1; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(d);
 
       data.push(
         activityMap.get(dateStr) ?? {
@@ -139,15 +146,15 @@ const ActivityChart = ({ dailyActivity, onDateClick }: ActivityChartProps) => {
               content={() => (
                 <div className="flex items-center justify-center gap-4 pt-2 text-[10px] text-gray-500">
                   <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#93c5fd] inline-block" />
+                    <span className="w-2 h-2 rounded-full bg-primary-500 inline-block" />
                     Total
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#22c55e] inline-block" />
+                    <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
                     New
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#f97316] inline-block" />
+                    <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
                     Duplicates
                   </span>
                 </div>
@@ -156,11 +163,11 @@ const ActivityChart = ({ dailyActivity, onDateClick }: ActivityChartProps) => {
             <Bar
               dataKey="total"
               name="Total"
-              fill="#93c5fd"
+              fill="var(--color-primary-500)"
               radius={[4, 4, 0, 0]}
               barSize={period <= 7 ? 24 : period <= 15 ? 16 : 10}
               cursor="pointer"
-              activeBar={{ fill: '#60a5fa' }}
+              activeBar={{ fill: 'var(--color-primary-600)' }}
             />
             <Line
               dataKey="unique"

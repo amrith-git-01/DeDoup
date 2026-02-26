@@ -28,9 +28,11 @@ const toLocalDateString = (date: Date): string => {
 
 interface BrowsingActivityChartProps {
   dailyActivity: BrowsingDailyActivity[];
+  /** Called when a day bar is clicked; receives the date string (YYYY-MM-DD). */
+  onBarClick?: (date: string) => void;
 }
 
-function BrowsingActivityChart({ dailyActivity }: BrowsingActivityChartProps) {
+function BrowsingActivityChart({ dailyActivity, onBarClick }: BrowsingActivityChartProps) {
   const [period, setPeriod] = useState<Period>(7);
   const chartWrapperRef = useRef<HTMLDivElement>(null);
   const [chartHeight, setChartHeight] = useState(260);
@@ -51,7 +53,7 @@ function BrowsingActivityChart({ dailyActivity }: BrowsingActivityChartProps) {
     const activityMap = new Map<string, BrowsingDailyActivity>();
     dailyActivity.forEach((item) => activityMap.set(item.date, item));
 
-    const data: { date: string; totalSeconds: number }[] = [];
+    const data: { date: string; totalSeconds: number; visitCount: number; siteCount: number }[] = [];
     for (let i = period - 1; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
@@ -60,6 +62,8 @@ function BrowsingActivityChart({ dailyActivity }: BrowsingActivityChartProps) {
       data.push({
         date: dateStr,
         totalSeconds: item ? item.totalSeconds : 0,
+        visitCount: item ? item.visitCount : 0,
+        siteCount: item ? item.siteCount : 0,
       });
     }
     return data;
@@ -112,7 +116,12 @@ function BrowsingActivityChart({ dailyActivity }: BrowsingActivityChartProps) {
             <Tooltip
               content={(props) => {
                 if (!props.active || !props.payload?.length) return null;
-                const row = props.payload[0]?.payload as { date: string; totalSeconds: number };
+                const row = props.payload[0]?.payload as {
+                  date: string;
+                  totalSeconds: number;
+                  visitCount: number;
+                  siteCount: number;
+                };
                 if (!row) return null;
                 const title = props.label
                   ? new Date(props.label).toLocaleDateString('en-US', {
@@ -123,7 +132,7 @@ function BrowsingActivityChart({ dailyActivity }: BrowsingActivityChartProps) {
                     })
                   : '';
                 return (
-                  <div className="p-3 rounded-xl bg-white border border-gray-200 shadow-lg text-xs text-gray-900 min-w-[140px]">
+                  <div className="p-3 rounded-xl bg-white border border-gray-200 shadow-lg text-xs text-gray-900 min-w-[160px]">
                     <div className="font-semibold mb-1.5 border-b border-gray-200 pb-1.5">
                       {title}
                     </div>
@@ -131,6 +140,18 @@ function BrowsingActivityChart({ dailyActivity }: BrowsingActivityChartProps) {
                       <span className="text-gray-600">Time</span>
                       <span className="font-semibold font-tabular-nums">
                         {formatDuration(row.totalSeconds)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-4 mt-1">
+                      <span className="text-gray-600">Visits</span>
+                      <span className="font-semibold font-tabular-nums">
+                        {row.visitCount.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-4 mt-1">
+                      <span className="text-gray-600">Sites</span>
+                      <span className="font-semibold font-tabular-nums">
+                        {row.siteCount.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -143,11 +164,12 @@ function BrowsingActivityChart({ dailyActivity }: BrowsingActivityChartProps) {
             <Bar
               dataKey="totalSeconds"
               name="Time"
-              fill="#93c5fd"
+              fill="var(--color-primary-500)"
               radius={[4, 4, 0, 0]}
               barSize={period <= 7 ? 24 : period <= 15 ? 16 : 10}
-              cursor="pointer"
-              activeBar={{ fill: '#60a5fa' }}
+              cursor={onBarClick ? 'pointer' : undefined}
+              activeBar={{ fill: 'var(--color-primary-600)' }}
+              onClick={onBarClick ? (data) => (data?.payload as { date?: string })?.date && onBarClick((data.payload as { date: string }).date) : undefined}
             />
           </ComposedChart>
         </ResponsiveContainer>
