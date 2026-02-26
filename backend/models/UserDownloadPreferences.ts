@@ -3,6 +3,7 @@ import mongoose, { Schema, type Document } from 'mongoose';
 export interface IUserDownloadPreferences extends Document {
     userId: mongoose.Types.ObjectId;
     trackingEnabled: boolean;
+    removeDuplicates: boolean;
     domainBlocklist: string[];
     pausedUntil: Date | null;
     createdAt: Date;
@@ -18,6 +19,10 @@ const userDownloadPreferencesSchema = new Schema<IUserDownloadPreferences>({
         index: true
     },
     trackingEnabled: {
+        type: Boolean,
+        default: true
+    },
+    removeDuplicates: {
         type: Boolean,
         default: true
     },

@@ -239,6 +239,7 @@ export const updatePreferencesController = asyncHandler(async (req: Request, res
     const raw = parsed.data;
     const body: Parameters<typeof updateDownloadPreferences>[1] = {
         trackingEnabled: raw.trackingEnabled,
+        removeDuplicates: raw.removeDuplicates,
         domainBlocklist: raw.domainBlocklist,
         pauseForSeconds: raw.pauseForSeconds,
     };

@@ -2,6 +2,7 @@ import { UserDownloadPreferences } from '../models/UserDownloadPreferences.js';
 
 const DEFAULT_PREFS = {
     trackingEnabled: true,
+    removeDuplicates: true,
     domainBlocklist: [] as string[],
     pausedUntil: null as Date | null,
 }
@@ -14,6 +15,7 @@ export async function getDownloadPreferences(userId: string) {
     const isPaused = doc.pausedUntil && new Date(doc.pausedUntil) > new Date();
     return {
         trackingEnabled: doc.trackingEnabled,
+        removeDuplicates: doc.removeDuplicates ?? true,
         domainBlocklist: doc.domainBlocklist || [],
         pausedUntil: doc.pausedUntil ? doc.pausedUntil.toISOString() : null,
         isPaused,
@@ -36,6 +38,7 @@ export async function updateDownloadPreferences(
     userId: string,
     body: {
         trackingEnabled?: boolean;
+        removeDuplicates?: boolean;
         domainBlocklist?: string[];
         pausedUntil?: Date | null;
         pauseForSeconds?: number;
@@ -43,6 +46,7 @@ export async function updateDownloadPreferences(
 ) {
     const update: Record<string, unknown> = {};
     if (typeof body.trackingEnabled === 'boolean') update.trackingEnabled = body.trackingEnabled;
+    if (typeof body.removeDuplicates === 'boolean') update.removeDuplicates = body.removeDuplicates;
     if (Array.isArray(body.domainBlocklist)) {
         update.domainBlocklist = body.domainBlocklist.map((d) => normalizeDomain(d)).filter(Boolean);
     }
@@ -53,15 +57,29 @@ export async function updateDownloadPreferences(
         update.pausedUntil = body.pausedUntil;
     }
 
+    const setOnInsert: Record<string, unknown> = {};
+    const defaults = {
+        trackingEnabled: true,
+        removeDuplicates: true,
+        domainBlocklist: [] as string[],
+        pausedUntil: null as Date | null,
+    };
+    for (const key of Object.keys(defaults)) {
+        if (!(key in update)) {
+            setOnInsert[key] = defaults[key as keyof typeof defaults];
+        }
+    }
+
     const doc = await UserDownloadPreferences.findOneAndUpdate(
         { userId },
-        { $set: update },
+        { $set: update, ...(Object.keys(setOnInsert).length > 0 ? { $setOnInsert: setOnInsert } : {}) },
         { new: true, upsert: true, runValidators: true }
     ).lean();
 
     const isPaused = doc.pausedUntil && new Date(doc.pausedUntil) > new Date();
     return {
         trackingEnabled: doc.trackingEnabled,
+        removeDuplicates: doc.removeDuplicates ?? true,
         domainBlocklist: doc.domainBlocklist || [],
         pausedUntil: doc.pausedUntil ? doc.pausedUntil.toISOString() : null,
         isPaused,
