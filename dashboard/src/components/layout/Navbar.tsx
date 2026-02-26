@@ -1,6 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../store/hooks';
 import { clearAuth } from '../../store/slices/authSlice';
+import { resetDownloadsInitialFetchDone } from '../../store/slices/statsSlice';
+import { resetBrowsingInitialFetchDone } from '../../store/slices/browsingSlice';
 
 export function Navbar() {
   const navigate = useNavigate();
@@ -9,6 +11,8 @@ export function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     dispatch(clearAuth());
+    dispatch(resetDownloadsInitialFetchDone());
+    dispatch(resetBrowsingInitialFetchDone());
     navigate('/login');
   };
 
@@ -30,7 +34,7 @@ export function Navbar() {
                 to={item.to}
                 className={({ isActive }) =>
                   `relative flex flex-col items-center px-3 py-2 text-sm font-medium cursor-pointer transition-colors duration-200 ${
-                    isActive ? 'text-primary-600' : 'text-gray-600/90 hover:text-gray-900'
+                    isActive ? 'text-primary-600' : 'text-gray-600/90 hover:text-primary-600'
                   }`
                 }
               >
