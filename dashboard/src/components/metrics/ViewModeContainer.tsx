@@ -17,8 +17,8 @@ import type { ViewMode } from '../../types/ui';
 const OTHERS_COLOR = '#9ca3af';
 
 const DEFAULT_COLORS = [
-  '#3b82f6',
-  '#8b5cf6',
+  'var(--color-primary-500)',
+  'var(--color-accent-500)',
   '#10b981',
   '#f97316',
   '#ec4899',
@@ -65,6 +65,8 @@ export interface ViewModeContainerProps {
   topN?: number;
   /** When true, bar chart X-axis shows every Nth label to avoid overlap. Only Source Analytics uses this. */
   barXAxisReduceLabels?: boolean;
+  /** Optional formatter for bar chart X-axis labels (e.g. shorten domain names). */
+  barXAxisFormatTick?: (label: string) => string;
 }
 
 export const ViewModeContainer: React.FC<ViewModeContainerProps> = ({
@@ -88,6 +90,7 @@ export const ViewModeContainer: React.FC<ViewModeContainerProps> = ({
   onChartClick,
   topN,
   barXAxisReduceLabels,
+  barXAxisFormatTick,
 }) => {
   const hasData = data.length > 0;
   const totalValue = useMemo(() => data.reduce((s, d) => s + d.value, 0), [data]);
@@ -236,15 +239,16 @@ export const ViewModeContainer: React.FC<ViewModeContainerProps> = ({
             }
             labelLine={false}
             cursor="pointer"
-            onClick={(data) =>
-              data &&
-              onChartClick?.({
+            onClick={(data) => {
+              if (!data) return;
+              const fullItem = chartData.find((c) => c.name === data.name) ?? {
                 name: data.name,
                 value: data.value,
                 secondary: data.secondary,
                 fill: data.fill,
-              })
-            }
+              };
+              onChartClick?.(fullItem);
+            }}
           >
             {chartData.map((_, i) => (
               <Cell key={i} fill={chartData[i].fill!} />
@@ -320,10 +324,11 @@ export const ViewModeContainer: React.FC<ViewModeContainerProps> = ({
             axisLine={false}
             tickLine={false}
             interval={
-              barXAxisReduceLabels && barChartData.length > 8
+              barXAxisReduceLabels && barChartData.length >= 8
                 ? Math.max(0, Math.floor(barChartData.length / 8))
                 : 0
             }
+            tickFormatter={barXAxisFormatTick}
           />
           <YAxis
             tick={{ fontSize: 10, fill: '#9ca3af' }}
@@ -384,7 +389,7 @@ export const ViewModeContainer: React.FC<ViewModeContainerProps> = ({
             dataKey={barDataKey}
             radius={[4, 4, 0, 0]}
             barSize={28}
-            activeBar={{ fill: '#2563eb' }}
+            activeBar={{ fill: 'var(--color-primary-600)' }}
             cursor={onChartClick ? 'pointer' : undefined}
             onClick={(data: unknown) => {
               const row = data as ViewModeContainerItem & { fill?: string };
