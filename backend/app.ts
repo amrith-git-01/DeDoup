@@ -1,26 +1,33 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import { env } from './config/env.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
+import { contentTypeMiddleware } from './middleware/contentTypeMiddleware.js';
+import { requestIdMiddleware } from './middleware/requestIdMiddleware.js';
+import { csrfMiddleware } from './middleware/csrfMiddleware.js';
+import { globalApiLimiter } from './middleware/rateLimiters.js';
 import morgan from 'morgan';
 import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 import downRoutes from './routes/downloadRoutes.js';
 import browsingRoutes from './routes/browsingRoutes.js';
 import sseRoutes from './routes/sseRoutes.js';
-
-dotenv.config();
+import { initSSE } from './services/sseService.js';
 
 const app = express();
+initSSE();
 
+app.use(requestIdMiddleware);
 app.use(helmet());
 
 const allowedOrigins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim()) : []),
+    ...(env.CORS_ORIGIN ? env.CORS_ORIGIN.split(',').map((o) => o.trim()) : []),
 ];
 
 app.use(
@@ -34,43 +41,37 @@ app.use(
     })
 );
 
-// const downloadsLimiter = rateLimit({
-//     windowMs: 15 * 60 * 1000,
-//     limit: 200,
-//     message: { success: false, message: 'Too many requests, please try again later.' },
-// });
-// app.use('/api/downloads', downloadsLimiter);
-
-// const browsingLimiter = rateLimit({
-//     windowMs: 15 * 60 * 1000,
-//     limit: 300,
-//     message: { success: false, message: 'Too many requests, please try again later.' },
-// });
-// app.use('/api/browsing', browsingLimiter);
-
+app.use(contentTypeMiddleware);
 app.use(express.json({ limit: '100kb' }));
+app.use(cookieParser());
 
 app.use(express.urlencoded({ extended: true }));
 
-if (process.env.NODE_ENV === 'development') {
+if (env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
-}
-else {
-    app.use(morgan('combined'))
+} else {
+    app.use(morgan('combined'));
 }
 
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
+    const dbReady = mongoose.connection.readyState === 1;
+    const dbStatus = dbReady ? 'connected' : 'disconnected';
     res.status(200).json({
-        status: 'ok',
-        message: "Server is running",
-        environment: process.env.NODE_ENV || 'development',
-    })
-})
+        status: dbReady ? 'ok' : 'degraded',
+        db: dbStatus,
+        uptime: process.uptime(),
+        version: process.env.npm_package_version,
+        environment: env.NODE_ENV,
+    });
+});
 
-app.use('/api/auth', authRoutes);
-app.use('/api/downloads', downRoutes);
-app.use('/api/browsing', browsingRoutes);
-app.use('/api/sse', sseRoutes);
+app.use('/api/v1', globalApiLimiter);
+app.use('/api/v1', csrfMiddleware);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/downloads', downRoutes);
+app.use('/api/v1/browsing', browsingRoutes);
+app.use('/api/v1/sse', sseRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
